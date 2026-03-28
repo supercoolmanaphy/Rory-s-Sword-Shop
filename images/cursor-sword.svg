@@ -18,10 +18,13 @@
   </defs>
 
   <!-- Blade (silver steel) pointing upper-left, tip at (5,5) -->
-  <!-- Blade polygon: thicker than original for visibility -->
+  <!-- Blade polygon: dark outline so it's visible against light backgrounds -->
   <polygon
     points="5,5 9,6 31,25 24,32"
     fill="url(#bladeGrad)"
+    stroke="#444444"
+    stroke-width="0.8"
+    stroke-linejoin="round"
   />
 
   <!-- Blade edge highlight -->
