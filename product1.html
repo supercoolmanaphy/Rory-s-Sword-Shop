@@ -24,7 +24,7 @@
 
     .main-img {
       width: 100%;
-      height: 300px;
+      height: 345px;
       object-fit: cover;
       border-radius: 10px;
     }
@@ -42,29 +42,65 @@
       border-radius: 5px;
     }
 
-    .back {
-      display: inline-block;
+    .nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 15px;
+    }
+
+    .back {
       text-decoration: none;
       color: blue;
     }
 
-    textarea {
-      width: 100%;
-      min-height: 120px;
+    .cart-link {
+      text-decoration: none;
+      color: #333;
+      font-size: 16px;
+    }
+
+    .cart-link:hover {
+      color: #000;
+    }
+
+    #description {
       margin-top: 10px;
       font-size: 16px;
-      padding: 10px;
+      line-height: 1.5;
+    }
+
+    .add-to-cart {
+      padding: 10px 20px;
+      font-size: 16px;
       border-radius: 5px;
-      border: 1px solid #ccc;
-      resize: vertical;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+
+    .add-to-cart:hover {
+      background-color: #218838;
+    }
+
+    .add-to-cart.in-cart {
+      background-color: #6c757d;
+    }
+
+    .add-to-cart.in-cart:hover {
+      background-color: #5a6268;
     }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <a href="index.html" class="back">← Back to Shop</a>
+  <div class="nav-bar">
+    <a href="index.html" class="back">← Back to Shop</a>
+    <a href="checkout.html" class="cart-link">🛒 Cart (<span id="cart-count">0</span>)</a>
+  </div>
 
   <div class="product-page">
     <h1>Bronze Short Sword</h1>
@@ -72,8 +108,12 @@
 
     <p><strong>Price:</strong> $150.00</p>
 
-    <label for="description"><strong>Product Description:</strong></label>
-    <textarea id="description" placeholder="hiiiiiiii"></textarea>
+    <h3>Product Description</h3>
+    <p id="description">
+      A finely crafted bronze short sword, ideal for collectors, historical displays, or reenactments. Forged with attention to authentic period detail, this piece showcases the craftsmanship of ancient bronze-working traditions.
+    </p>
+
+    <button class="add-to-cart">Add to Cart</button>
 
     <h3>More Images</h3>
     <div class="gallery">
@@ -83,6 +123,48 @@
     </div>
   </div>
 </div>
+
+<script src="cart.js"></script>
+<script>
+  const PRODUCT = { id: 'product1', name: 'Bronze Short Sword', price: 150.00, image: 'images/sword1.jpg' };
+
+  const btn = document.querySelector('.add-to-cart');
+  const cartCount = document.getElementById('cart-count');
+
+  const mainImg = document.querySelector('.main-img');
+  const galleryImgs = document.querySelectorAll('.gallery img');
+  galleryImgs.forEach(img => {
+    img.addEventListener('click', () => { mainImg.src = img.src; });
+  });
+
+  function updateCartCount() { cartCount.textContent = getCart().length; }
+
+  function updateBtn() {
+    const inCart = getCart().some(i => i.id === PRODUCT.id);
+    if (inCart) {
+      btn.textContent = '✓ In Cart — Remove';
+      btn.classList.add('in-cart');
+    } else {
+      btn.textContent = 'Add to Cart';
+      btn.classList.remove('in-cart');
+    }
+  }
+
+  btn.addEventListener('click', () => {
+    let cart = getCart();
+    if (cart.some(i => i.id === PRODUCT.id)) {
+      cart = cart.filter(i => i.id !== PRODUCT.id);
+    } else {
+      cart.push(PRODUCT);
+    }
+    saveCart(cart);
+    updateBtn();
+    updateCartCount();
+  });
+
+  updateBtn();
+  updateCartCount();
+</script>
 
 </body>
 </html>

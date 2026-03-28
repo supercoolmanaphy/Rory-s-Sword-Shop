@@ -55,9 +55,25 @@
 
     .back {
       display: inline-block;
-      margin-bottom: 15px;
       text-decoration: none;
       color: blue;
+    }
+
+    .nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .cart-link {
+      text-decoration: none;
+      color: #333;
+      font-size: 16px;
+    }
+
+    .cart-link:hover {
+      color: #000;
     }
 
     .add-to-cart {
@@ -75,6 +91,14 @@
       background-color: #218838;
     }
 
+    .add-to-cart.in-cart {
+      background-color: #6c757d;
+    }
+
+    .add-to-cart.in-cart:hover {
+      background-color: #5a6268;
+    }
+
     #description {
       margin-top: 10px;
       font-size: 16px;
@@ -85,7 +109,10 @@
 <body>
 
 <div class="container">
-  <a href="index.html" class="back">← Back to Shop</a>
+  <div class="nav-bar">
+    <a href="index.html" class="back">← Back to Shop</a>
+    <a href="checkout.html" class="cart-link">🛒 Cart (<span id="cart-count">0</span>)</a>
+  </div>
 
   <div class="product-page">
     <h1>Bronze Arrowheads - 5</h1>
@@ -109,15 +136,46 @@
   </div>
 </div>
 
+<script src="cart.js"></script>
 <script>
+  const PRODUCT = { id: 'product2', name: 'Bronze Arrowheads - 5', price: 50.00, image: 'images/sword2.jpg' };
+
+  const btn = document.querySelector('.add-to-cart');
+  const cartCount = document.getElementById('cart-count');
+
   const mainImg = document.querySelector('.main-img');
   const galleryImgs = document.querySelectorAll('.gallery img');
-
   galleryImgs.forEach(img => {
-    img.addEventListener('click', () => {
-      mainImg.src = img.src;
-    });
+    img.addEventListener('click', () => { mainImg.src = img.src; });
   });
+
+  function updateCartCount() { cartCount.textContent = getCart().length; }
+
+  function updateBtn() {
+    const inCart = getCart().some(i => i.id === PRODUCT.id);
+    if (inCart) {
+      btn.textContent = '✓ In Cart — Remove';
+      btn.classList.add('in-cart');
+    } else {
+      btn.textContent = 'Add to Cart';
+      btn.classList.remove('in-cart');
+    }
+  }
+
+  btn.addEventListener('click', () => {
+    let cart = getCart();
+    if (cart.some(i => i.id === PRODUCT.id)) {
+      cart = cart.filter(i => i.id !== PRODUCT.id);
+    } else {
+      cart.push(PRODUCT);
+    }
+    saveCart(cart);
+    updateBtn();
+    updateCartCount();
+  });
+
+  updateBtn();
+  updateCartCount();
 </script>
 
 </body>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Checkout – Rory's Sword Shop</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background-color: #f4f4f4;
+    }
+
+    header {
+      background-color: #333;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 30px;
+    }
+
+    .container {
+      padding: 20px;
+      max-width: 800px;
+      margin: auto;
+    }
+
+    .back {
+      display: inline-block;
+      margin-bottom: 15px;
+      text-decoration: none;
+      color: blue;
+    }
+
+    .cart-box {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .cart-box h2 {
+      margin-top: 0;
+    }
+
+    .cart-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .cart-item:last-of-type {
+      border-bottom: none;
+    }
+
+    .cart-item img {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+
+    .cart-item-info {
+      flex: 1;
+    }
+
+    .cart-item-info h3 {
+      margin: 0 0 4px;
+      font-size: 18px;
+    }
+
+    .cart-item-info p {
+      margin: 0;
+      color: #555;
+    }
+
+    .remove-btn {
+      background: none;
+      border: 1px solid #dc3545;
+      color: #dc3545;
+      padding: 6px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .remove-btn:hover {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    .cart-total {
+      text-align: right;
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 2px solid #333;
+    }
+
+    .place-order-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      font-size: 18px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    .place-order-btn:hover {
+      background-color: #218838;
+    }
+
+    .empty-msg {
+      text-align: center;
+      color: #777;
+      font-size: 18px;
+      padding: 30px 0;
+    }
+
+    .success-msg {
+      display: none;
+      text-align: center;
+      padding: 30px 0;
+    }
+
+    .success-msg h2 {
+      color: #28a745;
+    }
+  </style>
+</head>
+<body>
+
+  <header>Rory's Sword Shop</header>
+
+  <div class="container">
+    <a href="index.html" class="back">← Back to Shop</a>
+
+    <div class="cart-box">
+      <h2>Your Cart</h2>
+
+      <div id="cart-contents"></div>
+
+      <div class="success-msg" id="success-msg">
+        <h2>✓ Order Placed!</h2>
+        <p>Thank you for your order. We'll be in touch shortly.</p>
+        <a href="index.html">← Continue Shopping</a>
+      </div>
+    </div>
+  </div>
+
+<script src="cart.js"></script>
+<script>
+  function render() {
+    const cart = getCart();
+    const container = document.getElementById('cart-contents');
+    container.innerHTML = '';
+
+    if (cart.length === 0) {
+      const msg = document.createElement('p');
+      msg.className = 'empty-msg';
+      const link = document.createElement('a');
+      link.href = 'index.html';
+      link.textContent = 'Browse products';
+      msg.textContent = 'Your cart is empty. ';
+      msg.appendChild(link);
+      container.appendChild(msg);
+      return;
+    }
+
+    cart.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'cart-item';
+
+      const img = document.createElement('img');
+      img.src = item.image;
+      img.alt = item.name;
+
+      const info = document.createElement('div');
+      info.className = 'cart-item-info';
+
+      const h3 = document.createElement('h3');
+      h3.textContent = item.name;
+
+      const p = document.createElement('p');
+      p.textContent = '$' + item.price.toFixed(2);
+
+      info.appendChild(h3);
+      info.appendChild(p);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-btn';
+      removeBtn.textContent = 'Remove';
+      removeBtn.addEventListener('click', () => {
+        saveCart(getCart().filter(i => i.id !== item.id));
+        render();
+      });
+
+      div.appendChild(img);
+      div.appendChild(info);
+      div.appendChild(removeBtn);
+      container.appendChild(div);
+    });
+
+    const total = cart.reduce((sum, item) => sum + item.price, 0);
+
+    const totalDiv = document.createElement('div');
+    totalDiv.className = 'cart-total';
+    totalDiv.textContent = 'Total: $' + total.toFixed(2);
+    container.appendChild(totalDiv);
+
+    const orderBtn = document.createElement('button');
+    orderBtn.className = 'place-order-btn';
+    orderBtn.textContent = 'Place Order';
+    orderBtn.addEventListener('click', placeOrder);
+    container.appendChild(orderBtn);
+  }
+
+  function placeOrder() {
+    saveCart([]);
+    document.getElementById('cart-contents').style.display = 'none';
+    document.getElementById('success-msg').style.display = 'block';
+  }
+
+  render();
+</script>
+
+</body>
+</html>

@@ -16,6 +16,21 @@
       padding: 20px;
       text-align: center;
       font-size: 30px;
+      position: relative;
+    }
+
+    .header-cart {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      text-decoration: none;
+      color: white;
+      font-size: 18px;
+    }
+
+    .header-cart:hover {
+      color: #ccc;
     }
 
     .container {
@@ -78,6 +93,7 @@
 
   <header>
     Rory's Sword Shop
+    <a href="checkout.html" class="header-cart">🛒 Cart (<span id="cart-count">0</span>)</a>
   </header>
 
   <div class="container">
@@ -113,4 +129,10 @@
   </div>
 
 </body>
+
+<script src="cart.js"></script>
+<script>
+  document.getElementById('cart-count').textContent = getCart().length;
+</script>
+
 </html>
