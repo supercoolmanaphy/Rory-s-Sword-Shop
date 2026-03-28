@@ -1,20 +1,17 @@
 (function () {
-  // Inject styles for custom cursor and slash animation
+  // Resolve the image path relative to this script's location
+  var scriptSrc = (document.currentScript && document.currentScript.src) || '';
+  var base = scriptSrc.replace(/cursor\.js$/, '');
+  var imgSrc = base + 'images/cursor-sword.svg';
+
+  // Inject styles: CSS cursor URL (browser-native, always visible) + slash animation.
+  // The HTML pages already carry the cursor URL in their <style> at parse-time to avoid
+  // a flash of the default cursor; this injection overrides with an absolute URL derived
+  // from the script's own src, which is more reliable if the page is served from a
+  // subdirectory or the files are reorganised.
   var style = document.createElement('style');
   style.textContent = [
-    '* { cursor: none !important; }',
-
-    '#sword-cursor {',
-    '  position: fixed;',
-    '  width: 48px;',
-    '  height: 48px;',
-    '  pointer-events: none;',
-    '  z-index: 999999;',
-    '  /* Offset so the sword tip (top-left corner of SVG) is the click hotspot */',
-    '  transform: translate(-10%, -10%);',
-    '  will-change: left, top;',
-    '  transition: opacity 0.15s;',
-    '}',
+    '* { cursor: url("' + imgSrc + '") 5 5, auto !important; }',
 
     '.sword-slash {',
     '  position: fixed;',
@@ -52,11 +49,6 @@
     '}'
   ].join('\n');
   document.head.appendChild(style);
-
-  // Resolve the image path relative to this script's location
-  var scriptSrc = (document.currentScript && document.currentScript.src) || '';
-  var base = scriptSrc.replace(/cursor\.js$/, '');
-  var imgSrc = base + 'images/cursor-sword.svg';
 
   // Slash counter for unique filter IDs
   var slashCount = 0;
@@ -137,37 +129,5 @@
     }, 500);
   }
 
-  function init() {
-    var cursor = document.createElement('img');
-    cursor.id  = 'sword-cursor';
-    cursor.src = imgSrc;
-    cursor.alt = '';
-    document.body.appendChild(cursor);
-
-    var mouseX = -200;
-    var mouseY = -200;
-    var rafId  = null;
-
-    function moveCursor() {
-      cursor.style.left = mouseX + 'px';
-      cursor.style.top  = mouseY + 'px';
-      rafId = null;
-    }
-
-    document.addEventListener('mousemove', function (e) {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
-      if (!rafId) { rafId = requestAnimationFrame(moveCursor); }
-    });
-
-    document.addEventListener('mouseleave', function () { cursor.style.opacity = '0'; });
-    document.addEventListener('mouseenter', function () { cursor.style.opacity = '1'; });
-    document.addEventListener('click',      function (e) { createSlash(e.clientX, e.clientY); });
-  }
-
-  if (document.body) {
-    init();
-  } else {
-    document.addEventListener('DOMContentLoaded', init);
-  }
+  document.addEventListener('click', function (e) { createSlash(e.clientX, e.clientY); });
 })();
