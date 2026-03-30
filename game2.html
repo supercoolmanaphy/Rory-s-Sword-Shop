@@ -143,7 +143,7 @@
 
 <div id="game-wrapper">
   <canvas id="canvas" width="1200" height="700"></canvas>
-  <p class="controls-hint">WASD / Arrow Keys · Click to navigate · E to interact with chest · 1–5 select hotbar slot</p>
+  <p class="controls-hint">WASD / Arrow Keys · Click to navigate · E to interact · 1–5 select hotbar slot</p>
 </div>
 
 <div id="chest-modal" class="hidden">
@@ -153,6 +153,16 @@
     <div class="modal-btns">
       <button id="take-all-btn">Take All</button>
       <button id="close-modal-btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="npc-modal" class="hidden">
+  <div class="modal-box">
+    <h3 id="npc-modal-title">—</h3>
+    <p id="npc-modal-text" style="color:#ddd;font-size:15px;line-height:1.6;margin:10px 0 18px;white-space:pre-line;"></p>
+    <div class="modal-btns">
+      <button id="npc-close-btn">Close</button>
     </div>
   </div>
 </div>
@@ -199,44 +209,54 @@ const T = Object.freeze({
   SIGN:    20,  // sign post
   STALL_L: 21,  // market stall left
   STALL_R: 22,  // market stall right
+  BLACK:   23,  // pure black fill (unused storeroom space)
+  DOOR_U:  24,  // upward door  (village → farmland)
+  DOOR_D:  25,  // downward door (farmland → village)
+  DIRT:    26,  // plowed farmland dirt
+  CROP:    27,  // growing crops
+  HOUSE_W: 28,  // half-timbered house wall
+  DOOR_CLOSED: 29, // blocked door (not walkable)
 });
 
-const WALKABLE = new Set([T.FLOOR, T.DOOR_R, T.DOOR_L, T.COBBLE, T.GRASS]);
+const WALKABLE = new Set([T.FLOOR, T.DOOR_R, T.DOOR_L, T.COBBLE, T.GRASS,
+                           T.DOOR_U, T.DOOR_D, T.DIRT, T.CROP]);
 
 // ── short aliases for map building ──────────────────────────────
 const { FLOOR:F, WALL:W, DOOR_R:DR, DOOR_L:DL,
         COBBLE:C, GRASS:G, BARREL:B, SHELF:S,
         CHEST_C:CC, BED_TL:BTL, BED_TR:BTR, BED_BL:BBL, BED_BR:BBR,
         TREE:TR, WELL_TL:WTL, WELL_TR:WTR, WELL_BL:WBL, WELL_BR:WBR,
-        FENCE:Z, SIGN:SG, STALL_L:SL, STALL_R:SR } = T;
+        FENCE:Z, SIGN:SG, STALL_L:SL, STALL_R:SR,
+        BLACK:BK, DOOR_U:DU, DOOR_D:DD, DIRT:DI, CROP:CP,
+        HOUSE_W:HW, DOOR_CLOSED:DC } = T;
 
 // ── room definitions ─────────────────────────────────────────────
 const ROOMS = [
 
-  // ── Room 0 : Dusty Medieval Storeroom ──────────────────────────
+  // ── Room 0 : Dusty Medieval Storeroom (right third of map) ──────
   {
     name: 'Storeroom',
     bgColor: '#110a04',
     map: [
-      [W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W],
-      [W, S, S, S, S, S, S, S, S, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, W],
-      [W, S, S, S, S, S, S, S, S, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, W],
-      [W, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, W],
-      [W, B, B, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, W],
-      [W, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, W],
-      [W, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, W],
-      [W, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, DR],
-      [W, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, DR],
-      [W, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, W],
-      [W, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F,CC, F, F, F, F, F, F, F, F, F, W],
-      [W, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, W],
-      [W, F, F, F, F, F,BTL,BTR, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, W],
-      [W, F, F, F, F, F,BBL,BBR, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, W],
-      [W, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, W],
-      [W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, W, W, W, W, W, W, W, W, W],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, S, S, S, S, F, F, F, F, W],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, S, S, S, S, F, F, F, F, W],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, B, F, F, F, F, F, F, F, W],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F,DR],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F,DR],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F,CC, F, F, F, F, W],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W,BTL,BTR, F, F, F, F, F, F, W],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W,BBL,BBR, F, F, F, F, F, F, W],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, W, W, W, W, W, W, W, W, W],
     ],
-    playerSpawn:  { x: 3,  y: 8 },
-    chestTile:    { x: 19, y: 10 },
+    playerSpawn:  { x: 22, y: 8 },
+    chestTile:    { x: 24, y: 10 },
     entryFromR:   { x: 27, y: 7 },   // arrival position when coming back from room 1
   },
 
@@ -245,10 +265,13 @@ const ROOMS = [
     name: 'Village Square',
     bgColor: '#3a6e3a',
     map: [
-      [ Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
-      [ Z, G, G, G, G, G,TR, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G,TR, G, G, G, G, Z],
-      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
-      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
+      // row 0 – fence with farmland entrance top-left (cols 1-2)
+      [ Z,DU,DU, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
+      // row 1 – buildings in top-left (cols 2-6) and top-right (cols 23-27)
+      [ Z, G,HW,HW,HW,HW,HW, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G,HW,HW,HW,HW,HW, G, Z],
+      [ Z, G,HW,HW,HW,HW,HW, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G,HW,HW,HW,HW,HW, G, Z],
+      [ Z, G,HW,HW,HW,HW,HW, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G,HW,HW,HW,HW,HW, G, Z],
+      // row 4 – NPCs stand here (farmer col 4, blacksmith col 25)
       [ Z, G, G, G, G, G, G, G, G, G, C, C, C, C, C, C, C, C, C, C, G, G, G, G, G, G, G, G, G, Z],
       [ Z, G, G, G, G, G, G, G, G, G, C, G, G, G, G, G, G, G, G, C, G, G, G, G, G, G, G, G, G, Z],
       [ Z, G, G, G, G, G, G, G, G, G, C, G, G, G, G, G, G, G, G, C, G, G, G, G, G, G, G, G, G, Z],
@@ -256,24 +279,61 @@ const ROOMS = [
       [DL, G, G, G, G, G, G, G, G, G, C, G, G,WBL,WBR, G, G, G, G, C, G, G, G, G, G, G, G, G, G, Z],
       [ Z, G, G, G, G, G, G, G, G, G, C, G, G, G, G, G, G, G, G, C, G, G, G, G, G, G, G, G, G, Z],
       [ Z, G, G, G, G, G, G, G, G, G, C, G, G, G, G, G, G, G, G, C, G, G, G, G, G, G, G, G, G, Z],
+      // row 11 – NPCs stand here (barkeeper col 4, cook col 25)
       [ Z, G, G, G, G, G, G, G, G, G, C,SG, G, G, G, G, G, G, G, C, G, G, G, G, G, G, G, G, G, Z],
-      [ Z, G, G, G, G, G, G, G, G, G, C, G, G, G, G, G, G,SL,SR, C, G, G, G, G, G, G, G, G, G, Z],
-      [ Z, G, G, G,TR, G, G, G, G, G, C, C, C, C, C, C, C, C, C, C, G, G, G, G, G, G, G, G, G, Z],
-      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
+      // row 12 – buildings in bottom-left (cols 2-6) and bottom-right (cols 23-27)
+      [ Z, G,HW,HW,HW,HW,HW, G, G, G, C, G, G, G, G, G, G,SL,SR, C, G, G, G,HW,HW,HW,HW,HW, G, Z],
+      [ Z, G,HW,HW,HW,HW,HW, G, G, G, C, C, C, C, C, C, C, C, C, C, G, G, G,HW,HW,HW,HW,HW, G, Z],
+      [ Z, G,HW,HW,HW,HW,HW, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G,HW,HW,HW,HW,HW, G, Z],
       [ Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
     ],
-    playerSpawn:  { x: 2, y: 7 },
-    chestTile:    null,
-    entryFromL:   { x: 2, y: 7 },    // arrival position when coming from room 0
+    playerSpawn:     { x: 2, y: 7 },
+    chestTile:       null,
+    entryFromL:      { x: 2, y: 7 },    // arrival from storeroom
+    entryFromFarmland: { x: 1, y: 1 },  // arrival from farmland (col 1 = grass, just inside top fence)
+  },
+
+  // ── Room 2 : Farmland ─────────────────────────────────────────
+  {
+    name: 'Farmland',
+    bgColor: '#2e5e1e',
+    map: [
+      // row 0 – fence
+      [ Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
+      // rows 1-4 – farmhouse (right side, cols 20-28) + open grass
+      [ Z, G, G,TR, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G,HW,HW,HW,HW,HW,HW,HW,HW,HW, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G,HW,HW,HW,HW,HW,HW,HW,HW,HW, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G,HW,HW,HW,HW,HW,HW,HW,HW,HW, Z],
+      // row 4 – farmhouse bottom wall; DC (blocked door) at cols 23-24
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G,HW,HW,HW,DC,DC,HW,HW,HW,HW, Z],
+      // row 5 – angry farmer NPC at col 23 (blocks farmhouse door)
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
+      // rows 6-12 – plowed fields (alternating DIRT / CROP, cols 4-18)
+      [ Z, G, G,TR, G,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI, G, G, G, G, G, G, G, G, G, G, Z],
+      [ Z, G, G, G, G,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP, G, G, G, G, G, G, G, G, G,TR, Z],
+      [ Z, G, G, G, G,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI, G, G, G, G, G, G, G, G, G, G, Z],
+      [ Z, G, G, G, G,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP, G, G, G, G, G, G, G, G, G, G, Z],
+      [ Z, G, G, G, G,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI, G, G, G, G, G, G, G, G, G, G, Z],
+      [ Z, G, G, G, G,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP, G, G, G, G, G, B, G, G, G, G, Z],
+      [ Z, G, G, G, G,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI, G, G, G, G, G, G, G, G, G, G, Z],
+      // rows 13-14 – yard with hay bales
+      [ Z, G,TR, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, B, G, G, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
+      // row 15 – fence with exit door at cols 1-2 (back to village square)
+      [ Z,DD,DD, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
+    ],
+    playerSpawn:      { x: 2, y: 14 },
+    chestTile:        null,
+    entryFromVillage: { x: 2, y: 14 },  // arrival from village square
   },
 ];
 
 // ── chest item catalogue ─────────────────────────────────────────
 const CHEST_ITEMS = [
-  { id:'sword',  name:'Rusty Sword',   icon:'⚔️',  desc:'An old but still sharp sword',   taken:false },
-  { id:'bread',  name:'Stale Bread',   icon:'🍞',  desc:'Still edible… maybe',             taken:false },
-  { id:'coins',  name:'Gold Coins',    icon:'💰',  desc:'A handful of gold coins',          taken:false },
-  { id:'potion', name:'Health Potion', icon:'🧪',  desc:'Restores vitality in a pinch',    taken:false },
+  { id:'sword',  name:'Rusty Sword',   icon:'⚔️',  desc:'An old but still sharp sword',              taken:false },
+  { id:'bread',  name:'Stale Bread',   icon:'🍞',  desc:'Still edible… maybe',                        taken:false },
+  { id:'coins',  name:'5 Gold Coins',  icon:'🪙',  desc:'5 shiny gold coins (added to your purse)',   taken:false, isCoins:true, amount:5 },
+  { id:'potion', name:'Health Potion', icon:'🧪',  desc:'Restores vitality in a pinch',               taken:false },
 ];
 
 // ── game state ───────────────────────────────────────────────────
@@ -282,15 +342,18 @@ let chestOpen  = false;
 let modalOpen  = false;
 
 const player = {
-  tileX: 3, tileY: 8,
-  pxX: 3*TILE, pxY: 8*TILE,
-  targetX: 3, targetY: 8,
+  tileX: 22, tileY: 8,
+  pxX: 22*TILE, pxY: 8*TILE,
+  targetX: 22, targetY: 8,
   facing: 'down',
   path: [],            // queued tiles (mouse-click pathfinding)
   walkTimer: 0,        // 0..WALK_DUR while mid-tile
   walkFrame: 0,        // 0 or 1 (leg animation toggle)
   moving: false,
+  hp: 10, maxHp: 10,   // health points
+  coins: 0,            // gold coins
 };
+const footsteps = []; // { x, y, age } – trailing footprint marks
 const WALK_DUR = 0.13; // 130 ms per tile — feels natural for tile-based movement
 
 const inventory    = [null, null, null, null, null];
@@ -298,6 +361,60 @@ let   selectedSlot = 0;
 
 // held keys
 const keys = {};
+
+// ── NPC definitions ──────────────────────────────────────────────
+const NPCS = [
+  {
+    id: 'farmer_village',
+    name: 'Farmer',
+    tileX: 4, tileY: 4,
+    room: 1,
+    dialog: ['Good harvest this season!', 'Those dark clouds worry me though…'],
+    outfitColor: '#6a7a30',
+    hairColor: '#5a3010',
+    accessory: null,
+  },
+  {
+    id: 'blacksmith',
+    name: 'Young Blacksmith',
+    tileX: 25, tileY: 4,
+    room: 1,
+    dialog: ['Finest blades in the land, right here!', "I'm still learning, but my work is honest."],
+    outfitColor: '#555555',
+    hairColor: '#222222',
+    accessory: 'hammer',
+  },
+  {
+    id: 'barkeeper',
+    name: 'Barkeeper',
+    tileX: 4, tileY: 11,
+    room: 1,
+    dialog: ["Ale's fresh today, traveller!", 'Pull up a chair and rest your weary feet.'],
+    outfitColor: '#8a4a20',
+    hairColor: '#6a3010',
+    accessory: 'apron',
+  },
+  {
+    id: 'cook',
+    name: 'Cook',
+    tileX: 25, tileY: 11,
+    room: 1,
+    dialog: ['Best stew north of the river!', "Come hungry, leave full — that's my motto."],
+    outfitColor: '#dddddd',
+    hairColor: '#888888',
+    accessory: 'apron',
+  },
+  {
+    id: 'angry_farmer',
+    name: 'Angry Farmer',
+    tileX: 23, tileY: 5,
+    room: 2,
+    dialog: ['GET OFF MY LAND!', 'This farmhouse is PRIVATE PROPERTY! Leave at once!'],
+    outfitColor: '#5a6a28',
+    hairColor: '#aa6020',
+    accessory: null,
+  },
+];
 
 // transition (fade between rooms)
 const fade = { active:false, alpha:0, phase:'out', targetRoom:0, spawnX:0, spawnY:0 };
@@ -585,6 +702,86 @@ function drawTile(type, col, row) {
       break;
     }
 
+    // ─ black (unused space) ──────────────────────────────────────
+    case T.BLACK: {
+      fr(x, y, TILE, TILE, '#000000');
+      break;
+    }
+
+    // ─ door (upward, village → farmland) ─────────────────────────
+    case T.DOOR_U: {
+      fr(x, y, TILE, TILE, '#5a5650');
+      fr(x+4, y+2, TILE-8, TILE-4, '#7a4a15');
+      fr(x+7, y+5, 10, 13, '#5a3010');
+      fr(x+7, y+20, 10, 12, '#5a3010');
+      fr(x+TILE/2-3, y+TILE-9, 5, 5, '#daa520');
+      ctx.fillStyle = '#ffee44';
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('▲', x+TILE/2, y+TILE/2+5);
+      ctx.textAlign = 'left';
+      break;
+    }
+
+    // ─ door (downward, farmland → village) ───────────────────────
+    case T.DOOR_D: {
+      fr(x, y, TILE, TILE, '#5a5650');
+      fr(x+4, y+2, TILE-8, TILE-4, '#7a4a15');
+      fr(x+7, y+5, 10, 13, '#5a3010');
+      fr(x+7, y+20, 10, 12, '#5a3010');
+      fr(x+TILE/2-3, y+6, 5, 5, '#daa520');
+      ctx.fillStyle = '#ffee44';
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('▼', x+TILE/2, y+TILE/2+5);
+      ctx.textAlign = 'left';
+      break;
+    }
+
+    // ─ plowed dirt ───────────────────────────────────────────────
+    case T.DIRT: {
+      fr(x, y, TILE, TILE, '#5a3a18');
+      for (let fy = y+4; fy < y+TILE; fy += 10) fr(x, fy, TILE, 4, '#4a2e12');
+      fr(x+5,  y+1,  4, 3, '#6a4a22');
+      fr(x+20, y+13, 4, 3, '#6a4a22');
+      fr(x+30, y+22, 3, 4, '#6a4a22');
+      break;
+    }
+
+    // ─ growing crops (wheat) ─────────────────────────────────────
+    case T.CROP: {
+      fr(x, y, TILE, TILE, '#5a3a18');
+      for (let fy = y+4; fy < y+TILE; fy += 10) fr(x, fy, TILE, 3, '#4a2e12');
+      for (let cx2 = x+4; cx2 < x+TILE-2; cx2 += 8) {
+        fr(cx2,   y+18, 2, 14, '#7a8a10'); // stalk
+        fr(cx2-2, y+10, 6,  8, '#aabb28'); // grain head
+        fr(cx2-1, y+8,  4,  4, '#c8d040'); // tip
+      }
+      break;
+    }
+
+    // ─ half-timbered house wall ───────────────────────────────────
+    case T.HOUSE_W: {
+      fr(x, y, TILE, TILE, '#c8b090');                   // plaster
+      fr(x, y+TILE/2-1, TILE, 3, '#5a3010');             // horizontal beam
+      fr(x+TILE/2-1, y, 3, TILE, '#5a3010');             // vertical beam
+      fr(x, y, 3, 3, '#5a3010');                          // corner braces
+      fr(x+TILE-3, y, 3, 3, '#5a3010');
+      fr(x, y+TILE-3, 3, 3, '#5a3010');
+      fr(x+TILE-3, y+TILE-3, 3, 3, '#5a3010');
+      break;
+    }
+
+    // ─ blocked / closed door ─────────────────────────────────────
+    case T.DOOR_CLOSED: {
+      fr(x, y, TILE, TILE, '#5a5650');
+      fr(x+4, y+4, TILE-8, TILE-8, '#7a4a15');
+      fr(x+6, y+8,  12, 16, '#5a3010');
+      fr(x+6, y+26, 12,  8, '#5a3010');
+      fr(x+TILE/2-4, y+TILE/2-2, 8, 7, '#daa520'); // lock
+      break;
+    }
+
     default:
       break;
   }
@@ -655,6 +852,108 @@ function drawKnight(px, py, facing, walkFrame) {
   fr(cx-5, cy-14, 10, 3, '#555');       // visor slit
   fr(cx-2, cy-14, 1, 3, '#888');
   fr(cx+1, cy-14, 1, 3, '#888');
+}
+
+// ── NPC sprite ───────────────────────────────────────────────────
+function drawNPC(npc) {
+  const nx = npc.tileX * TILE;
+  const ny = npc.tileY * TILE;
+  const cx = nx + TILE / 2;
+  const cy = ny + TILE / 2;
+
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(cx, ny + TILE - 5, 8, 3, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // legs
+  fr(cx-5, cy+6,  4, 10, '#484040');
+  fr(cx+1,  cy+6, 4, 10, '#484040');
+
+  // body
+  fr(cx-6, cy-3, 12, 12, npc.outfitColor);
+
+  // head
+  fr(cx-5, cy-14, 10, 10, '#e0c898');
+
+  // hair
+  fr(cx-5, cy-16, 10, 4, npc.hairColor);
+
+  // eyes
+  fr(cx-2, cy-10, 2, 2, '#333');
+  fr(cx+1,  cy-10, 2, 2, '#333');
+
+  // accessory
+  if (npc.accessory === 'hammer') {
+    fr(cx+6, cy-6,  3, 12, '#888888'); // handle
+    fr(cx+4, cy-9,  7,  5, '#666666'); // hammerhead
+  } else if (npc.accessory === 'apron') {
+    fr(cx-4, cy, 8, 10, '#f8f8f0'); // white apron
+  }
+
+  // name label above NPC
+  ctx.font = '8px monospace';
+  const tw = ctx.measureText(npc.name).width;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(Math.round(cx - tw/2 - 4), ny - 17, Math.round(tw + 8), 12);
+  ctx.fillStyle = '#ffeeaa';
+  ctx.textAlign = 'center';
+  ctx.fillText(npc.name, cx, ny - 7);
+  ctx.textAlign = 'left';
+}
+
+// ── footsteps ────────────────────────────────────────────────────
+function drawFootsteps() {
+  for (const fp of footsteps) {
+    const alpha = Math.max(0, 1 - fp.age) * 0.45;
+    ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+    ctx.beginPath();
+    ctx.ellipse(Math.round(fp.x), Math.round(fp.y), 3, 5, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(Math.round(fp.x), Math.round(fp.y) - 5, 2, 2, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+// ── health bar ───────────────────────────────────────────────────
+function drawHealthBar() {
+  const barW = 100;
+  const barH = 14;
+  const bx = canvas.width - barW - 16;
+  const by = 10;
+
+  // background
+  fr(bx - 2, by - 2, barW + 4, barH + 4, '#2a0a0a');
+  fr(bx, by, barW, barH, '#660000');
+
+  // fill
+  const fillW = Math.max(0, Math.round(barW * player.hp / player.maxHp));
+  fr(bx, by, fillW, barH, '#cc2222');
+  if (fillW > 0) fr(bx, by, fillW, 3, '#ee4444'); // highlight
+
+  // text
+  ctx.fillStyle = 'white';
+  ctx.font = 'bold 10px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${player.hp}/${player.maxHp} HP`, bx + barW/2, by + 11);
+  ctx.textAlign = 'left';
+
+  // heart icon
+  ctx.font = '13px serif';
+  ctx.fillText('❤', bx - 18, by + 12);
+}
+
+// ── coins display ────────────────────────────────────────────────
+function drawCoins() {
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(canvas.width - 130, 30, 120, 22);
+  ctx.fillStyle = '#daa520';
+  ctx.font = 'bold 12px monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText(`\uD83E\uDE99 ${player.coins} coins`, canvas.width - 14, 46);
+  ctx.textAlign = 'left';
 }
 
 // ── hotbar ───────────────────────────────────────────────────────
@@ -731,9 +1030,39 @@ function drawHint(msg) {
 //  WALKABILITY / PATHFINDING
 // ================================================================
 
+function isBlockedByNpc(col, row) {
+  return NPCS.some(n => n.room === roomIdx && n.tileX === col && n.tileY === row);
+}
+
 function isWalkable(room, col, row) {
   if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return false;
-  return WALKABLE.has(room.map[row][col]);
+  if (!WALKABLE.has(room.map[row][col])) return false;
+  if (isBlockedByNpc(col, row)) return false;
+  return true;
+}
+
+// ── NPC adjacency / interaction ──────────────────────────────────
+function adjacentNpc() {
+  return NPCS.find(n => {
+    if (n.room !== roomIdx) return false;
+    const dx = Math.abs(player.tileX - n.tileX);
+    const dy = Math.abs(player.tileY - n.tileY);
+    return (dx + dy) === 1;
+  }) || null;
+}
+
+function openNpcDialog(npc) {
+  modalOpen = true;
+  canvas.blur();
+  document.getElementById('npc-modal-title').textContent = npc.name;
+  document.getElementById('npc-modal-text').textContent  = npc.dialog.join('\n\n');
+  document.getElementById('npc-modal').classList.remove('hidden');
+}
+
+function closeNpcDialog() {
+  modalOpen = false;
+  document.getElementById('npc-modal').classList.add('hidden');
+  canvas.focus();
 }
 
 // BFS – returns array of {x,y} steps (not including start, including end)
@@ -850,6 +1179,10 @@ function closeChestModal() {
 }
 
 function addToInventory(item) {
+  if (item.isCoins) {
+    player.coins += item.amount || 1;
+    return true;
+  }
   const slot = inventory.indexOf(null);
   if (slot === -1) return false; // no space
   inventory[slot] = { icon: item.icon, name: item.name };
@@ -908,7 +1241,7 @@ document.addEventListener('keydown', e => {
     selectedSlot = parseInt(e.key) - 1;
   }
 
-  // interact with chest
+  // interact with chest or NPC
   if ((e.key === 'e' || e.key === 'E') && !modalOpen) {
     const room = ROOMS[roomIdx];
     if (room.chestTile && isAdjacentToChest()) {
@@ -917,10 +1250,16 @@ document.addEventListener('keydown', e => {
       room.map[cy][cx] = T.CHEST_O;
       chestOpen = true;
       openChestModal();
+    } else {
+      const npc = adjacentNpc();
+      if (npc) openNpcDialog(npc);
     }
   }
 
-  if (e.key === 'Escape' && modalOpen) closeChestModal();
+  if (e.key === 'Escape' && modalOpen) {
+    closeChestModal();
+    closeNpcDialog();
+  }
 
   // prevent page scroll with arrow/space
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) {
@@ -956,6 +1295,15 @@ canvas.addEventListener('click', e => {
   const clickRow = Math.floor(my / TILE);
   const room = ROOMS[roomIdx];
 
+  // Click directly on an NPC tile while adjacent → open dialog
+  const clickedNpc = NPCS.find(n => n.room === roomIdx && n.tileX === clickCol && n.tileY === clickRow);
+  if (clickedNpc) {
+    const dx = Math.abs(player.tileX - clickedNpc.tileX);
+    const dy = Math.abs(player.tileY - clickedNpc.tileY);
+    if (dx + dy === 1) { openNpcDialog(clickedNpc); return; }
+    return; // NPC tile blocks pathing anyway
+  }
+
   // Click directly on chest tile while adjacent → open chest
   if (room.chestTile) {
     const {x:cx, y:cy} = room.chestTile;
@@ -979,6 +1327,7 @@ canvas.addEventListener('click', e => {
 // modal buttons
 document.getElementById('take-all-btn').addEventListener('click', takeAllItems);
 document.getElementById('close-modal-btn').addEventListener('click', closeChestModal);
+document.getElementById('npc-close-btn').addEventListener('click', closeNpcDialog);
 
 // ================================================================
 //  UPDATE
@@ -986,6 +1335,13 @@ document.getElementById('close-modal-btn').addEventListener('click', closeChestM
 
 function update(dt) {
   if (modalOpen) return;
+
+  // ── age footsteps ──────────────────────────────────────────────
+  for (let i = footsteps.length - 1; i >= 0; i--) {
+    footsteps[i].age += dt;
+    if (footsteps[i].age >= 1) footsteps.splice(i, 1);
+  }
+
   if (fade.active) {
     if (fade.phase === 'out') {
       fade.alpha = Math.min(1, fade.alpha + dt * 5);
@@ -1009,6 +1365,17 @@ function update(dt) {
     player.pxY   = startY + (endY - startY) * t;
 
     if (t >= 1) {
+      // record footstep at the tile we just left
+      const stepCx = player.tileX * TILE + TILE / 2;
+      const stepCy = player.tileY * TILE + TILE / 2;
+      const fSide  = player.walkFrame; // 0=left, 1=right
+      const fOx = (player.facing === 'left' || player.facing === 'right') ? 0
+                : (fSide === 0 ? -5 : 5);
+      const fOy = (player.facing === 'left' || player.facing === 'right')
+                ? (fSide === 0 ? -4 : 4) : 0;
+      footsteps.push({ x: stepCx + fOx, y: stepCy + fOy, age: 0 });
+      if (footsteps.length > 12) footsteps.shift();
+
       player.tileX  = player.targetX;
       player.tileY  = player.targetY;
       player.pxX    = endX;
@@ -1026,6 +1393,16 @@ function update(dt) {
       if (tile === T.DOOR_L && roomIdx === 1) {
         const sp = ROOMS[0].entryFromR;
         startTransition(0, sp.x, sp.y);
+        return;
+      }
+      if (tile === T.DOOR_U && roomIdx === 1) {
+        const sp = ROOMS[2].entryFromVillage;
+        startTransition(2, sp.x, sp.y);
+        return;
+      }
+      if (tile === T.DOOR_D && roomIdx === 2) {
+        const sp = ROOMS[1].entryFromFarmland;
+        startTransition(1, sp.x, sp.y);
         return;
       }
 
@@ -1097,12 +1474,22 @@ function render() {
     ctx.fillRect(0, 0, canvas.width, GAME_H);
   }
 
+  // ── footsteps ───────────────────────────────────────────────
+  drawFootsteps();
+
+  // ── NPCs ────────────────────────────────────────────────────
+  for (const npc of NPCS) {
+    if (npc.room === roomIdx) drawNPC(npc);
+  }
+
   // ── player ──────────────────────────────────────────────────
   drawKnight(player.pxX, player.pxY, player.facing, player.walkFrame);
 
-  // ── interaction hint ────────────────────────────────────────
-  if (!modalOpen && isAdjacentToChest()) {
-    drawHint('Press [E] or click the chest to open it');
+  // ── interaction hints ────────────────────────────────────────
+  if (!modalOpen) {
+    if (isAdjacentToChest()) drawHint('Press [E] or click the chest to open it');
+    const nearNpc = adjacentNpc();
+    if (nearNpc) drawHint(`Press [E] to talk to ${nearNpc.name}`);
   }
 
   // ── door hints ──────────────────────────────────────────────
@@ -1110,13 +1497,21 @@ function render() {
     const tile = room.map[player.tileY]?.[player.tileX];
     if (tile === T.DOOR_R) drawHint('Enter → Village Square');
     if (tile === T.DOOR_L) drawHint('Enter ← Storeroom');
+    if (tile === T.DOOR_U) drawHint('Enter ▲ Farmland');
+    if (tile === T.DOOR_D) drawHint('Enter ▼ Village Square');
   }
 
   // ── hotbar ──────────────────────────────────────────────────
   drawHotbar();
 
-  // ── room name ───────────────────────────────────────────────
+  // ── room name (top-left) ─────────────────────────────────────
   drawRoomName(room.name);
+
+  // ── health bar (top-right) ───────────────────────────────────
+  drawHealthBar();
+
+  // ── coins display (below health bar) ────────────────────────
+  drawCoins();
 
   // ── fade overlay ────────────────────────────────────────────
   if (fade.active && fade.alpha > 0) {
