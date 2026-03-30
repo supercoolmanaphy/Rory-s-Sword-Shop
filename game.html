@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="images/sword5.jpg">
+  <title>Sword Slash Game – Rory's Sword Shop</title>
+  <style>
+    * { cursor: url('images/cursor-sword.svg') 5 5, auto !important; }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background-color: #1a1a2e;
+      color: white;
+    }
+
+    header {
+      background-color: #333;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 30px;
+      position: relative;
+    }
+
+    .nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      background-color: #222;
+    }
+
+    .back {
+      text-decoration: none;
+      color: #aaa;
+      font-size: 16px;
+    }
+
+    .back:hover { color: white; }
+
+    #game-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    #hud {
+      display: flex;
+      gap: 40px;
+      font-size: 22px;
+      margin-bottom: 15px;
+      background: rgba(255,255,255,0.07);
+      padding: 10px 30px;
+      border-radius: 10px;
+    }
+
+    #game-canvas {
+      border: 3px solid #555;
+      border-radius: 12px;
+      background: #0d0d1a;
+      display: block;
+    }
+
+    #overlay {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    #overlay h2 {
+      font-size: 36px;
+      margin: 0;
+      text-shadow: 0 0 12px #4caf50;
+    }
+
+    #overlay p {
+      font-size: 20px;
+      margin: 0;
+      color: #ccc;
+    }
+
+    #start-btn, #restart-btn {
+      background-color: green;
+      color: white;
+      border: none;
+      padding: 14px 40px;
+      border-radius: 8px;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    #start-btn:hover, #restart-btn:hover {
+      background-color: darkgreen;
+    }
+
+    #canvas-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>Rory's Sword Shop</header>
+
+  <div class="nav-bar">
+    <a href="index.html" class="back">← Back to Shop</a>
+    <span style="color:#aaa; font-size:16px;">⚔️ Sword Slash</span>
+  </div>
+
+  <div id="game-wrapper">
+    <div id="hud">
+      <span>⚔️ Score: <strong id="score-display">0</strong></span>
+      <span>❤️ Lives: <strong id="lives-display">3</strong></span>
+      <span>⏱ Time: <strong id="time-display">30</strong>s</span>
+    </div>
+
+    <div id="canvas-container">
+      <canvas id="game-canvas" width="700" height="450"></canvas>
+      <div id="overlay">
+        <h2>⚔️ Sword Slash</h2>
+        <p>Click the swords before they disappear!</p>
+        <p style="font-size:15px; color:#888;">Missing a sword costs a life. 30 seconds on the clock.</p>
+        <button id="start-btn">▶ Start Game</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="cursor.js"></script>
+  <script>
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+    const overlay = document.getElementById('overlay');
+    const scoreEl = document.getElementById('score-display');
+    const livesEl = document.getElementById('lives-display');
+    const timeEl = document.getElementById('time-display');
+    const startBtn = document.getElementById('start-btn');
+
+    let score = 0, lives = 3, timeLeft = 30;
+    let targets = [];
+    let gameRunning = false;
+    let timerInterval = null;
+    let spawnInterval = null;
+    let animFrame = null;
+
+    const SWORD_COLORS = ['#c0392b', '#2980b9', '#f39c12', '#8e44ad', '#27ae60'];
+    const SWORD_SIZE = 36;
+
+    function randomBetween(a, b) { return Math.random() * (b - a) + a; }
+
+    function spawnTarget() {
+      const margin = SWORD_SIZE + 10;
+      targets.push({
+        x: randomBetween(margin, canvas.width - margin),
+        y: randomBetween(margin, canvas.height - margin),
+        color: SWORD_COLORS[Math.floor(Math.random() * SWORD_COLORS.length)],
+        born: Date.now(),
+        lifetime: randomBetween(1200, 2200),
+        hit: false,
+        scale: 0,
+      });
+    }
+
+    function drawSword(x, y, color, scale) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(Math.PI / 4);
+      ctx.scale(scale, scale);
+
+      const s = SWORD_SIZE;
+      // blade
+      ctx.beginPath();
+      ctx.moveTo(0, -s);
+      ctx.lineTo(4, s * 0.4);
+      ctx.lineTo(-4, s * 0.4);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 12;
+      ctx.fill();
+
+      // crossguard
+      ctx.beginPath();
+      ctx.rect(-s * 0.4, s * 0.35, s * 0.8, 7);
+      ctx.fillStyle = '#bdc3c7';
+      ctx.shadowBlur = 0;
+      ctx.fill();
+
+      // handle
+      ctx.beginPath();
+      ctx.rect(-5, s * 0.42, 10, s * 0.4);
+      ctx.fillStyle = '#7f5539';
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawParticle(p) {
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    let particles = [];
+
+    function spawnParticles(x, y, color) {
+      for (let i = 0; i < 12; i++) {
+        const angle = (Math.PI * 2 / 12) * i + randomBetween(0, 0.5);
+        const speed = randomBetween(2, 5);
+        particles.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          r: randomBetween(3, 7),
+          color,
+          alpha: 1,
+        });
+      }
+    }
+
+    function update() {
+      const now = Date.now();
+      targets = targets.filter(t => {
+        const age = now - t.born;
+        if (t.hit) return age < 400;
+        t.scale = Math.min(1, age / 200);
+        if (age > t.lifetime) {
+          lives = Math.max(0, lives - 1);
+          livesEl.textContent = lives;
+          if (lives <= 0) endGame();
+          return false;
+        }
+        return true;
+      });
+
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.15;
+        p.alpha -= 0.04;
+      });
+      particles = particles.filter(p => p.alpha > 0);
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // background grid
+      ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += 40) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += 40) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+      }
+
+      targets.forEach(t => {
+        const age = Date.now() - t.born;
+        const fadeStart = t.lifetime * 0.7;
+        let alpha = t.hit ? Math.max(0, 1 - (age - 0) / 400) : 1;
+        if (!t.hit && age > fadeStart) {
+          alpha = 1 - (age - fadeStart) / (t.lifetime - fadeStart);
+        }
+        ctx.globalAlpha = Math.max(0, alpha);
+        drawSword(t.x, t.y, t.color, t.hit ? t.scale * (1 + (age / 400) * 0.5) : t.scale);
+        ctx.globalAlpha = 1;
+      });
+
+      particles.forEach(drawParticle);
+    }
+
+    function gameLoop() {
+      if (!gameRunning) return;
+      update();
+      render();
+      animFrame = requestAnimationFrame(gameLoop);
+    }
+
+    function startGame() {
+      score = 0; lives = 3; timeLeft = 30;
+      targets = []; particles = [];
+      scoreEl.textContent = score;
+      livesEl.textContent = lives;
+      timeEl.textContent = timeLeft;
+      overlay.style.display = 'none';
+      gameRunning = true;
+
+      spawnTarget();
+      spawnInterval = setInterval(() => {
+        if (gameRunning) spawnTarget();
+      }, 900);
+
+      timerInterval = setInterval(() => {
+        if (!gameRunning) return;
+        timeLeft--;
+        timeEl.textContent = timeLeft;
+        if (timeLeft <= 0) endGame();
+      }, 1000);
+
+      gameLoop();
+    }
+
+    function endGame() {
+      gameRunning = false;
+      clearInterval(timerInterval);
+      clearInterval(spawnInterval);
+      cancelAnimationFrame(animFrame);
+      render();
+
+      overlay.innerHTML = `
+        <h2>Game Over!</h2>
+        <p>Your score: <strong style="color:#4caf50; font-size:26px;">${score}</strong></p>
+        <p style="color:#aaa; font-size:15px;">${score >= 10 ? '⚔️ Master Swordsman!' : score >= 5 ? '🗡 Good effort!' : '🛡 Keep practicing!'}</p>
+        <button id="restart-btn" style="background:green;color:white;border:none;padding:14px 40px;border-radius:8px;font-size:20px;cursor:pointer;">▶ Play Again</button>
+      `;
+      overlay.style.display = 'flex';
+      document.getElementById('restart-btn').addEventListener('click', startGame);
+    }
+
+    canvas.addEventListener('click', e => {
+      if (!gameRunning) return;
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      let hit = false;
+      for (let i = targets.length - 1; i >= 0; i--) {
+        const t = targets[i];
+        if (t.hit) continue;
+        const dist = Math.hypot(mx - t.x, my - t.y);
+        if (dist < SWORD_SIZE) {
+          t.hit = true;
+          spawnParticles(t.x, t.y, t.color);
+          score++;
+          scoreEl.textContent = score;
+          hit = true;
+          break;
+        }
+      }
+    });
+
+    startBtn.addEventListener('click', startGame);
+  </script>
+</body>
+</html>
