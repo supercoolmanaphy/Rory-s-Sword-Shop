@@ -33,11 +33,19 @@
     .back { text-decoration: none; color: #aaa; font-size: 16px; }
     .back:hover { color: white; }
 
+    #game-area {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      justify-content: flex-start;
+    }
+
     #game-wrapper {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: 16px;
+      align-items: flex-start;
     }
 
     #canvas {
@@ -54,6 +62,94 @@
       font-size: 13px;
       margin-top: 8px;
     }
+
+    #sidebar {
+      min-width: 210px;
+      width: 210px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #stats-panel {
+      background: #1a0d04;
+      border: 2px solid #8a5a20;
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: white;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #daa520;
+      text-align: center;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid #554020;
+      padding-bottom: 5px;
+    }
+
+    .stat-row {
+      font-family: monospace;
+      font-size: 12px;
+      color: #eee;
+      margin: 4px 0;
+    }
+
+    #s-hp-bar-outer {
+      background: #440000;
+      height: 9px;
+      border-radius: 3px;
+      margin: 2px 0 6px;
+      overflow: hidden;
+    }
+
+    #s-hp-bar-fill {
+      height: 100%;
+      background: #cc2222;
+      width: 100%;
+      transition: width 0.2s;
+    }
+
+    #npc-dialog-sidebar {
+      background: #1a0d04;
+      border: 2px solid #8a5a20;
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: white;
+    }
+
+    #npc-dialog-sidebar.hidden { display: none; }
+
+    .modal-btn {
+      padding: 6px 14px;
+      border-radius: 4px;
+      border: none;
+      font-size: 13px;
+      background: #444;
+      color: white;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+
+    .modal-btn:hover { background: #555; }
+
+    .buy-btn {
+      display: block;
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 4px;
+      border: 1px solid #8a5a20;
+      background: #5a3a10;
+      color: #daa520;
+      font-size: 12px;
+      cursor: pointer;
+      margin: 4px 0;
+      text-align: left;
+    }
+
+    .buy-btn:hover { background: #7a4a18; }
 
     /* ---- Chest Modal ---- */
     #chest-modal {
@@ -141,9 +237,27 @@
   <span style="color:#aaa;font-size:16px;">⚔️ Knight's Quest</span>
 </div>
 
-<div id="game-wrapper">
-  <canvas id="canvas" width="1200" height="700"></canvas>
-  <p class="controls-hint">WASD / Arrow Keys · Click to navigate · E to interact · 1–5 select hotbar slot</p>
+<div id="game-area">
+  <div id="game-wrapper">
+    <canvas id="canvas" width="1200" height="700"></canvas>
+    <p class="controls-hint">WASD / Arrow Keys · Click to navigate · E to interact · 1–5 select hotbar slot</p>
+  </div>
+  <div id="sidebar">
+    <div id="stats-panel">
+      <div class="panel-title">PLAYER STATS</div>
+      <div class="stat-row">Level: <span id="s-level">1</span></div>
+      <div class="stat-row"><span id="s-hp-label">HP: 10 / 10</span></div>
+      <div id="s-hp-bar-outer"><div id="s-hp-bar-fill" style="width:100%"></div></div>
+      <div class="stat-row" id="s-coins-row">🪙 0 coins</div>
+    </div>
+    <div id="npc-dialog-sidebar" class="hidden">
+      <div class="panel-title" id="npc-name-sidebar">—</div>
+      <p id="npc-text-sidebar" style="color:#ddd;font-size:13px;line-height:1.5;white-space:pre-line;margin:8px 0;"></p>
+      <div id="npc-shop-sidebar"></div>
+      <div id="npc-shop-msg" style="color:#88ff88;font-size:12px;min-height:16px;margin:4px 0;"></div>
+      <button id="npc-close-sidebar" class="modal-btn">Close</button>
+    </div>
+  </div>
 </div>
 
 <div id="chest-modal" class="hidden">
@@ -153,16 +267,6 @@
     <div class="modal-btns">
       <button id="take-all-btn">Take All</button>
       <button id="close-modal-btn">Close</button>
-    </div>
-  </div>
-</div>
-
-<div id="npc-modal" class="hidden">
-  <div class="modal-box">
-    <h3 id="npc-modal-title">—</h3>
-    <p id="npc-modal-text" style="color:#ddd;font-size:15px;line-height:1.6;margin:10px 0 18px;white-space:pre-line;"></p>
-    <div class="modal-btns">
-      <button id="npc-close-btn">Close</button>
     </div>
   </div>
 </div>
@@ -217,10 +321,18 @@ const T = Object.freeze({
   HOUSE_W: 28,  // half-timbered house wall
   DOOR_CLOSED: 29, // blocked door (not walkable)
   DOOR_STORE: 30,  // storeroom entrance/exit (bottom of storeroom ↔ building in village)
+  DOOR_FL:  31,  // farmland→forest door
+  DOOR_FO:  32,  // forest→farmland door
+  WATER:    33,  // non-walkable river water
+  BRIDGE:   34,  // walkable bridge over water
+  WINDMILL: 35,  // non-walkable windmill base
+  TREE_T:   36,  // tall dark forest tree (non-walkable)
+  MUSH:     37,  // red mushroom (walkable decoration)
 });
 
 const WALKABLE = new Set([T.FLOOR, T.DOOR_R, T.DOOR_L, T.COBBLE, T.GRASS,
-                           T.DOOR_U, T.DOOR_D, T.DIRT, T.CROP, T.DOOR_STORE]);
+                           T.DOOR_U, T.DOOR_D, T.DIRT, T.CROP, T.DOOR_STORE,
+                           T.DOOR_FL, T.DOOR_FO, T.BRIDGE, T.MUSH]);
 
 // ── short aliases for map building ──────────────────────────────
 const { FLOOR:F, WALL:W, DOOR_R:DR, DOOR_L:DL,
@@ -229,36 +341,39 @@ const { FLOOR:F, WALL:W, DOOR_R:DR, DOOR_L:DL,
         TREE:TR, WELL_TL:WTL, WELL_TR:WTR, WELL_BL:WBL, WELL_BR:WBR,
         FENCE:Z, SIGN:SG, STALL_L:SL, STALL_R:SR,
         BLACK:BK, DOOR_U:DU, DOOR_D:DD, DIRT:DI, CROP:CP,
-        HOUSE_W:HW, DOOR_CLOSED:DC, DOOR_STORE:DST } = T;
+        HOUSE_W:HW, DOOR_CLOSED:DC, DOOR_STORE:DST,
+        DOOR_FL:DFL, DOOR_FO:DFO, WATER:WA, BRIDGE:BR, WINDMILL:WND,
+        TREE_T:TRT, MUSH:MSH } = T;
 
 // ── room definitions ─────────────────────────────────────────────
 const ROOMS = [
 
-  // ── Room 0 : Dusty Medieval Storeroom (right third of map) ──────
+  // ── Room 0 : Dusty Medieval Storeroom (centered) ──────
   {
     name: 'Storeroom',
     bgColor: '#110a04',
     map: [
-      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, W, W, W, W, W, W, W, W, W],
-      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, S, S, S, S, F, F, F, F, W],
-      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, S, S, S, S, F, F, F, F, W],
-      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W],
-      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, B, F, F, F, F, F, F, F, W],
-      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W],
-      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W],
-      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W],
-      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W],
-      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W],
-      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F,CC, F, F, F, F, W],
-      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W],
-      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W,BTL,BTR, F, F, F, F, F, F, W],
-      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W,BBL,BBR, F, F, F, F, F, F, W],
-      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W],
-      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, W, W, W,DST,DST, W, W, W, W],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, W, W, W, W, W, W, W, W, W,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, S, S, S, S, F, F, F, F, W,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, S, S, S, S, F, F, F, F, W,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, B, F, F, F, F, F, F, F, W,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F,CC, F, F, F, F, W,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W,BTL,BTR, F, F, F, F, F, F, W,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W,BBL,BBR, F, F, F, F, F, F, W,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, F, F, F, F, F, F, F, F, W,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK],
+      [BK,BK,BK,BK,BK,BK,BK,BK,BK,BK, W, W, W, W,DST,DST, W, W, W, W,BK,BK,BK,BK,BK,BK,BK,BK,BK,BK],
     ],
-    playerSpawn:    { x: 22, y: 8 },
-    chestTile:      { x: 24, y: 10 },
-    entryFromVillage: { x: 24, y: 14 },  // arrival when entering from village square storeroom building
+    playerSpawn:    { x: 12, y: 8 },
+    chestTile:      { x: 14, y: 11 },
+    entryFromVillage: { x: 14, y: 14 },  // arrival when entering from village square storeroom building
   },
 
   // ── Room 1 : Village Square ────────────────────────────────────
@@ -266,8 +381,8 @@ const ROOMS = [
     name: 'Village Square',
     bgColor: '#3a6e3a',
     map: [
-      // row 0 – fence with farmland entrance top-left (cols 1-2)
-      [ Z,DU,DU, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
+      // row 0 – fence with farmland entrance at cols 14-15
+      [ Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z,DU,DU, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
       // row 1 – buildings in top-left (cols 2-6) and top-right (cols 23-27)
       [ Z, G,HW,HW,HW,HW,HW, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G,HW,HW,HW,HW,HW, G, Z],
       [ Z, G,HW,HW,HW,HW,HW, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G,HW,HW,HW,HW,HW, G, Z],
@@ -276,10 +391,14 @@ const ROOMS = [
       [ Z, G, G, G, G, G, G, G, G, G, C, C, C, C, C, C, C, C, C, C, G, G, G, G, G, G, G, G, G, Z],
       [ Z, G, G, G, G, G, G, G, G, G, C, G, G, G, G, G, G, G, G, C, G, G, G, G, G, G, G, G, G, Z],
       [ Z, G, G, G, G, G, G, G, G, G, C, G, G, G, G, G, G, G, G, C, G, G, G, G, G, G, G, G, G, Z],
-      [ Z, G, G, G, G, G, G, G, G, G, C, G, G,WTL,WTR, G, G, G, G, C, G, G, G, G, G, G, G, G, G,DR],
-      [ Z, G, G, G, G, G, G, G, G, G, C, G, G,WBL,WBR, G, G, G, G, C, G, G, G, G, G, G, G, G, G,DR],
-      [ Z, G, G, G, G, G, G, G, G, G, C, G, G, G, G,HW,HW,HW, G, C, G, G, G, G, G, G, G, G, G, Z],
-      [ Z, G, G, G, G, G, G, G, G, G, C, G, G, G,HW,DST,HW, G, G, C, G, G, G, G, G, G, G, G, G, Z],
+      // row 7 – storeroom building top row at cols 11-14, well at cols 16-17, right door at col 29
+      [ Z, G, G, G, G, G, G, G, G, G, C,HW,HW,HW,HW, G,WTL,WTR, G, C, G, G, G, G, G, G, G, G, G,DR],
+      // row 8
+      [ Z, G, G, G, G, G, G, G, G, G, C,HW, G, G,HW, G,WBL,WBR, G, C, G, G, G, G, G, G, G, G, G,DR],
+      // row 9
+      [ Z, G, G, G, G, G, G, G, G, G, C,HW, G, G,HW, G, G, G, G, C, G, G, G, G, G, G, G, G, G, Z],
+      // row 10 – storeroom door at col 13
+      [ Z, G, G, G, G, G, G, G, G, G, C,HW, G,DST,HW, G, G, G, G, C, G, G, G, G, G, G, G, G, G, Z],
       // row 11 – NPCs stand here (barkeeper col 4, cook col 25)
       [ Z, G, G, G, G, G, G, G, G, G, C,SG, G, G, G, G, G, G, G, C, G, G, G, G, G, G, G, G, G, Z],
       // row 12 – buildings in bottom-left (cols 2-6) and bottom-right (cols 23-27)
@@ -290,8 +409,8 @@ const ROOMS = [
     ],
     playerSpawn:        { x: 2, y: 7 },
     chestTile:          null,
-    entryFromStoreroom: { x: 15, y: 11 },  // arrival from storeroom (below storeroom building door)
-    entryFromFarmland:  { x: 1, y: 1 },    // arrival from farmland
+    entryFromStoreroom: { x: 13, y: 11 },  // arrival from storeroom (below storeroom building door)
+    entryFromFarmland:  { x: 14, y: 1 },   // arrival from farmland
     entryFromRowanoak:  { x: 28, y: 7 },   // arrival from Rowanoak Village
   },
 
@@ -300,33 +419,34 @@ const ROOMS = [
     name: 'Farmland',
     bgColor: '#2e5e1e',
     map: [
-      // row 0 – fence
-      [ Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
-      // rows 1-4 – farmhouse (right side, cols 20-28) + open grass
-      [ Z, G, G,TR, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G,HW,HW,HW,HW,HW,HW,HW,HW,HW, Z],
-      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G,HW,HW,HW,HW,HW,HW,HW,HW,HW, Z],
-      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G,HW,HW,HW,HW,HW,HW,HW,HW,HW, Z],
-      // row 4 – farmhouse bottom wall; DC (blocked door) at cols 23-24
-      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G,HW,HW,HW,DC,DC,HW,HW,HW,HW, Z],
-      // row 5 – angry farmer NPC at col 23 (blocks farmhouse door)
-      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
-      // rows 6-12 – plowed fields (alternating DIRT / CROP, cols 4-18)
+      // row 0 – fence with forest door at col 1
+      [ Z,DFL, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
+      // rows 1-4 – farmhouse (right side, cols 20-28) + dirt path at col 14
+      [ Z, G, G,TR, G, G, G, G, G, G, G, G, G, G,DI, G, G, G, G, G,HW,HW,HW,HW,HW,HW,HW,HW,HW, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,DI, G, G, G, G, G,HW,HW,HW,HW,HW,HW,HW,HW,HW, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,DI, G, G, G, G, G,HW,HW,HW,HW,HW,HW,HW,HW,HW, Z],
+      // row 4 – farmhouse bottom wall; single DC door at col 24
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,DI, G, G, G, G, G,HW,HW,HW,HW,DC,HW,HW,HW,HW, Z],
+      // row 5 – horizontal dirt path cols 14-23; angry farmer NPC at col 24
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI, G, G, G, G, G, Z],
+      // rows 6-12 – plowed fields (alternating DIRT / CROP, cols 4-18), dirt path at col 14
       [ Z, G, G,TR, G,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI, G, G, G, G, G, G, G, G, G, G, Z],
-      [ Z, G, G, G, G,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP, G, G, G, G, G, G, G, G, G,TR, Z],
+      [ Z, G, G, G, G,CP,CP,CP,CP,CP,CP,CP,CP,CP,DI,CP,CP,CP,CP, G, G, G, G, G, G, G, G, G,TR, Z],
       [ Z, G, G, G, G,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI, G, G, G, G, G, G, G, G, G, G, Z],
-      [ Z, G, G, G, G,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP, G, G, G, G, G, G, G, G, G, G, Z],
+      [ Z, G, G, G, G,CP,CP,CP,CP,CP,CP,CP,CP,CP,DI,CP,CP,CP,CP, G, G, G, G, G, G, G, G, G, G, Z],
       [ Z, G, G, G, G,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI, G, G, G, G, G, G, G, G, G, G, Z],
-      [ Z, G, G, G, G,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP, G, G, G, G, G, B, G, G, G, G, Z],
+      [ Z, G, G, G, G,CP,CP,CP,CP,CP,CP,CP,CP,CP,DI,CP,CP,CP,CP, G, G, G, G, G, B, G, G, G, G, Z],
       [ Z, G, G, G, G,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI,DI, G, G, G, G, G, G, G, G, G, G, Z],
-      // rows 13-14 – yard with hay bales
-      [ Z, G,TR, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, B, G, G, Z],
-      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
-      // row 15 – fence with exit door at cols 1-2 (back to village square)
-      [ Z,DD,DD, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
+      // rows 13-14 – yard with hay bales, dirt path at col 14
+      [ Z, G,TR, G, G, G, G, G, G, G, G, G, G, G,DI, G, G, G, G, G, G, G, G, G, G, G, B, G, G, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,DI, G, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
+      // row 15 – fence with exit door at cols 14-15 (back to village square)
+      [ Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z,DD,DD, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
     ],
-    playerSpawn:      { x: 2, y: 14 },
+    playerSpawn:      { x: 14, y: 14 },
     chestTile:        null,
-    entryFromVillage: { x: 2, y: 14 },  // arrival from village square
+    entryFromVillage: { x: 14, y: 14 },  // arrival from village square
+    entryFromForest:  { x: 1, y: 1 },    // arrival from forest
   },
 
   // ── Room 3 : Rowanoak Village ──────────────────────────────────
@@ -344,9 +464,9 @@ const ROOMS = [
       [ Z, G, G, DI, G, G, G, G, G, G, G, G, G, DI, G, G, G, G, G, G, G, G, G, DI, G, G, G, G, G, Z],
       [ Z, G, G, DI, G, G, G, G, G, G, G, G, G, DI, G, G, G, G, G, G, G, G, G, DI, G, G, G, G, G, Z],
       [ Z, G, G, DI, G, G, G, G, G, G, G, G, G, DI, G, G, G, G, G, G, G, G, G, DI, G, G, G, G, G, Z],
-      // row 7-8 – cobblestone road running the full width; left door back to village square
-      [DL, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, Z],
-      [DL, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, Z],
+      // row 7-8 – cobblestone road; left door back to village, right door to Riverside Bridge
+      [DL, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C,DR],
+      [DL, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C,DR],
       // rows 9-14 – open grass
       [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
       [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
@@ -357,9 +477,85 @@ const ROOMS = [
       // row 15 – fence
       [ Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
     ],
-    playerSpawn:      { x: 2, y: 7 },
-    chestTile:        null,
-    entryFromVillage: { x: 2, y: 7 },  // arrival from village square
+    playerSpawn:         { x: 2, y: 7 },
+    chestTile:           null,
+    entryFromVillage:    { x: 2, y: 7 },    // arrival from village square
+    entryFromRiverside:  { x: 28, y: 7 },   // arrival from Riverside Bridge
+  },
+
+  // ── Room 4 : Riverside Bridge ──────────────────────────────────
+  {
+    name: 'Riverside Bridge',
+    bgColor: '#3a6e3a',
+    map: [
+      // row 0 – fence top
+      [ Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
+      // rows 1-6 – grass on both sides, river (WATER) at cols 14-15
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,WA,WA, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,WA,WA, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,WA,WA, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,WA,WA, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,WA,WA, G, G, G, G, G, G,WND,WND,WND, G, G, G, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,WA,WA, G, G, G, G, G, G,WND,WND,WND, G, G, G, Z],
+      // row 7 – cobblestone path, bridge over river, windmill continues
+      [DL, C, C, C, C, C, C, C, C, C, C, C, C, C,BR,BR, C, C, C, C, C, C,WND,WND,WND, C, C, C, Z],
+      // row 8
+      [DL, C, C, C, C, C, C, C, C, C, C, C, C, C,BR,BR, C, C, C, C, C, C,WND,WND,WND, C, C, C, Z],
+      // rows 9-14 – grass on both sides, river
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,WA,WA, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,WA,WA, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,WA,WA, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,WA,WA, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,WA,WA, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,WA,WA, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
+      // row 15 – fence bottom
+      [ Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
+    ],
+    playerSpawn:          { x: 1, y: 7 },
+    chestTile:            null,
+    entryFromRowanoak:    { x: 1, y: 7 },
+  },
+
+  // ── Room 5 : Forest ────────────────────────────────────────────
+  {
+    name: 'Forest',
+    bgColor: '#0d1a08',
+    map: [
+      // row 0 – fence top
+      [ Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
+      // rows 1-2 – dense trees
+      [ Z,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      [ Z,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 3 – a few openings + mushroom
+      [ Z,TRT,TRT,TRT, G, G,TRT,TRT,TRT,TRT,TRT, G, G, G, G,TRT,TRT,TRT,TRT,TRT,MSH,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 4
+      [ Z,TRT,TRT, G, G, G, G,TRT,TRT, G, G, G, G, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 5 – wider path + mushroom
+      [ Z,TRT,TRT, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G,TRT,TRT,TRT,TRT,MSH,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 6
+      [ Z,TRT,TRT, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 7
+      [ Z,TRT,TRT,TRT, G, G, G, G, G, G, G, G, G, G, G, G, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 8
+      [ Z,TRT,TRT,TRT, G, G, G, G, G, G, G, G, G, G, G, G, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 9
+      [ Z,TRT,TRT,TRT,TRT, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 10
+      [ Z,TRT,TRT,TRT,TRT, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 11
+      [ Z,TRT,TRT,TRT,TRT, G, G, G, G,TRT,TRT,TRT,TRT, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 12 – mushroom
+      [ Z,TRT,TRT,TRT,TRT,TRT, G, G, G, G, G, G, G, G,TRT,TRT,TRT,TRT,MSH,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 13
+      [ Z,TRT,TRT,TRT,TRT,TRT,TRT, G, G, G, G, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 14 – open grass near exit
+      [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
+      // row 15 – bottom fence with exit door at col 1
+      [ Z,DFO, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
+    ],
+    playerSpawn:        { x: 1, y: 14 },
+    chestTile:          null,
+    entryFromFarmland:  { x: 1, y: 14 },
   },
 ];
 
@@ -439,11 +635,12 @@ const NPCS = [
     outfitColor: '#dddddd',
     hairColor: '#888888',
     accessory: 'apron',
+    shop: [{ id: 'bread', name: 'Bread', icon: '🍞', price: 3 }],
   },
   {
     id: 'angry_farmer',
     name: 'Angry Farmer',
-    tileX: 23, tileY: 5,
+    tileX: 24, tileY: 5,
     room: 2,
     dialog: ['GET OFF MY LAND!', 'This farmhouse is PRIVATE PROPERTY! Leave at once!'],
     outfitColor: '#5a6a28',
@@ -456,6 +653,7 @@ const NPCS = [
 const fade = { active:false, alpha:0, phase:'out', targetRoom:0, spawnX:0, spawnY:0 };
 
 let lastTime = 0;
+let clickTarget = null;
 
 // ================================================================
 //  DRAWING HELPERS
@@ -833,6 +1031,93 @@ function drawTile(type, col, row) {
       break;
     }
 
+    // ─ farmland→forest door ──────────────────────────────────────
+    case T.DOOR_FL: {
+      fr(x, y, TILE, TILE, '#5a5650');
+      fr(x+4, y+2, TILE-8, TILE-4, '#2a5a10');
+      fr(x+7, y+5, 10, 13, '#1a3a08');
+      fr(x+7, y+20, 10, 12, '#1a3a08');
+      fr(x+TILE/2-3, y+TILE-9, 5, 5, '#daa520');
+      ctx.fillStyle = '#88ff44';
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('🌲', x+TILE/2, y+TILE/2+5);
+      ctx.textAlign = 'left';
+      break;
+    }
+
+    // ─ forest→farmland door ──────────────────────────────────────
+    case T.DOOR_FO: {
+      fr(x, y, TILE, TILE, '#5a5650');
+      fr(x+4, y+2, TILE-8, TILE-4, '#2a5a10');
+      fr(x+7, y+5, 10, 13, '#1a3a08');
+      fr(x+7, y+20, 10, 12, '#1a3a08');
+      fr(x+TILE/2-3, y+6, 5, 5, '#daa520');
+      ctx.fillStyle = '#88ff44';
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('🌲', x+TILE/2, y+TILE/2+5);
+      ctx.textAlign = 'left';
+      break;
+    }
+
+    // ─ river water ───────────────────────────────────────────────
+    case T.WATER: {
+      fr(x, y, TILE, TILE, '#1a4a7a');
+      fr(x+2, y+8, TILE-4, 4, '#2a5a8a');
+      fr(x+2, y+24, TILE-4, 4, '#2a5a8a');
+      fr(x+6, y+16, 8, 3, '#3a6a9a');
+      break;
+    }
+
+    // ─ wooden bridge ─────────────────────────────────────────────
+    case T.BRIDGE: {
+      fr(x, y, TILE, TILE, '#7a5a30');
+      fr(x, y+12, TILE, 4, '#6a4a20');
+      fr(x, y+26, TILE, 4, '#6a4a20');
+      fr(x, y, 4, TILE, '#5a3010');
+      fr(x+TILE-4, y, 4, TILE, '#5a3010');
+      break;
+    }
+
+    // ─ windmill ──────────────────────────────────────────────────
+    case T.WINDMILL: {
+      fr(x, y, TILE, TILE, '#8a8278');
+      fr(x+10, y+4, 20, 30, '#aa9a8a');
+      fr(x+TILE/2-1, y, 2, 14, '#c8b090');
+      fr(x+TILE/2-1, y+24, 2, 14, '#c8b090');
+      fr(x, y+TILE/2-1, 14, 2, '#c8b090');
+      fr(x+24, y+TILE/2-1, 14, 2, '#c8b090');
+      ctx.fillStyle = '#554030';
+      ctx.beginPath();
+      ctx.arc(x+TILE/2, y+TILE/2, 4, 0, Math.PI*2);
+      ctx.fill();
+      break;
+    }
+
+    // ─ tall forest tree ──────────────────────────────────────────
+    case T.TREE_T: {
+      fr(x, y, TILE, TILE, '#0d1a08');
+      fr(x+16, y+28, 8, 12, '#3a2008');
+      fr(x+4,  y+0,  32, 30, '#0a2008');
+      fr(x+2,  y+4,  36, 26, '#0a2008');
+      fr(x+8,  y-2,  24, 32, '#0a2008');
+      fr(x+10, y+2,  12, 10, '#142e0c');
+      break;
+    }
+
+    // ─ red mushroom ──────────────────────────────────────────────
+    case T.MUSH: {
+      fr(x, y, TILE, TILE, '#0d1a08');
+      fr(x+16, y+24, 8, 12, '#d0c0a0');
+      fr(x+10, y+14, 20, 10, '#cc2222');
+      fr(x+8,  y+16, 24, 8, '#cc2222');
+      fr(x+12, y+12, 16, 6, '#dd3333');
+      fr(x+13, y+15, 3, 3, '#eeeeee');
+      fr(x+22, y+17, 3, 3, '#eeeeee');
+      break;
+    }
+
     default:
       break;
   }
@@ -959,12 +1244,20 @@ function drawFootsteps() {
   for (const fp of footsteps) {
     const alpha = Math.max(0, 1 - fp.age) * 0.45;
     ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+    const rot = fp.facing === 'up'    ?  0
+              : fp.facing === 'down'  ?  Math.PI
+              : fp.facing === 'left'  ?  Math.PI/2
+              :                         -Math.PI/2;
+    ctx.save();
+    ctx.translate(Math.round(fp.x), Math.round(fp.y));
+    ctx.rotate(rot);
     ctx.beginPath();
-    ctx.ellipse(Math.round(fp.x), Math.round(fp.y), 3, 5, 0, 0, Math.PI*2);
+    ctx.ellipse(0, 0, 3, 5, 0, 0, Math.PI*2);
     ctx.fill();
     ctx.beginPath();
-    ctx.ellipse(Math.round(fp.x), Math.round(fp.y) - 5, 2, 2, 0, 0, Math.PI*2);
+    ctx.ellipse(0, -5, 2, 2, 0, 0, Math.PI*2);
     ctx.fill();
+    ctx.restore();
   }
 }
 
@@ -1079,6 +1372,15 @@ function drawStatsPanel() {
   ctx.restore();
 }
 
+// ── sidebar stats update ─────────────────────────────────────────
+function updateSidebar() {
+  document.getElementById('s-level').textContent = player.level;
+  document.getElementById('s-hp-label').textContent = `HP: ${player.hp} / ${player.maxHp}`;
+  document.getElementById('s-hp-bar-fill').style.width =
+    `${Math.max(0, Math.round(100 * player.hp / player.maxHp))}%`;
+  document.getElementById('s-coins-row').textContent = `🪙 ${player.coins} coins`;
+}
+
 // ── hotbar ───────────────────────────────────────────────────────
 function drawHotbar() {
   const slotSize = 52;
@@ -1180,14 +1482,53 @@ function adjacentNpc() {
 function openNpcDialog(npc) {
   modalOpen = true;
   canvas.blur();
-  document.getElementById('npc-modal-title').textContent = npc.name;
-  document.getElementById('npc-modal-text').textContent  = npc.dialog.join('\n\n');
-  document.getElementById('npc-modal').classList.remove('hidden');
+  document.getElementById('npc-name-sidebar').textContent = npc.name;
+  document.getElementById('npc-text-sidebar').textContent = npc.dialog.join('\n\n');
+  document.getElementById('npc-shop-msg').textContent = '';
+
+  const shopDiv = document.getElementById('npc-shop-sidebar');
+  shopDiv.innerHTML = '';
+  if (npc.shop && npc.shop.length > 0) {
+    const hr = document.createElement('hr');
+    hr.style.borderColor = '#554030';
+    shopDiv.appendChild(hr);
+    const title = document.createElement('p');
+    title.style.cssText = 'color:#daa520;font-size:13px;margin:6px 0 4px;font-weight:bold;font-family:monospace';
+    title.textContent = 'SHOP';
+    shopDiv.appendChild(title);
+    npc.shop.forEach(item => {
+      const btn = document.createElement('button');
+      btn.className = 'buy-btn';
+      btn.textContent = `Buy ${item.name} ${item.icon} \u2013 ${item.price} coins`;
+      btn.addEventListener('click', () => {
+        const msg = document.getElementById('npc-shop-msg');
+        if (player.coins < item.price) {
+          msg.style.color = '#ff8888';
+          msg.textContent = 'Not enough coins!';
+          return;
+        }
+        const slot = inventory.indexOf(null);
+        if (slot === -1) {
+          msg.style.color = '#ff8888';
+          msg.textContent = 'Inventory is full!';
+          return;
+        }
+        player.coins -= item.price;
+        inventory[slot] = { icon: item.icon, name: item.name, id: item.id };
+        msg.style.color = '#88ff88';
+        msg.textContent = `Bought ${item.name}!`;
+        updateSidebar();
+      });
+      shopDiv.appendChild(btn);
+    });
+  }
+
+  document.getElementById('npc-dialog-sidebar').classList.remove('hidden');
 }
 
 function closeNpcDialog() {
   modalOpen = false;
-  document.getElementById('npc-modal').classList.add('hidden');
+  document.getElementById('npc-dialog-sidebar').classList.add('hidden');
   canvas.focus();
 }
 
@@ -1235,6 +1576,7 @@ function startTransition(targetRoom, spawnX, spawnY) {
   fade.spawnX     = spawnX;
   fade.spawnY     = spawnY;
   player.path     = [];
+  clickTarget     = null;
 }
 
 function applyTransition() {
@@ -1290,6 +1632,9 @@ function openChestModal() {
     });
   }
 
+  const takeAllBtn = document.getElementById('take-all-btn');
+  takeAllBtn.style.display = untaken.length === 0 ? 'none' : '';
+
   document.getElementById('chest-modal').classList.remove('hidden');
 
   // per-item take
@@ -1303,6 +1648,7 @@ function openChestModal() {
         btn.closest('.chest-item').remove();
         if (CHEST_ITEMS.every(i => i.taken)) {
           list.innerHTML = '<p style="color:#999;text-align:center;padding:16px 0;font-style:italic;margin:0;">This chest is empty.</p>';
+          document.getElementById('take-all-btn').style.display = 'none';
         }
       }
     });
@@ -1335,6 +1681,7 @@ function takeAllItems() {
   // show empty state
   const list = document.getElementById('chest-items-list');
   list.innerHTML = '<p style="color:#999;text-align:center;padding:16px 0;font-style:italic;margin:0;">This chest is empty.</p>';
+  document.getElementById('take-all-btn').style.display = 'none';
 }
 
 // ================================================================
@@ -1463,12 +1810,15 @@ canvas.addEventListener('click', e => {
     // Replace path mid-walk (re-route from current target tile)
     player.path = bfs(room, player.targetX, player.targetY, clickCol, clickRow);
   }
+  if (player.path.length > 0) {
+    clickTarget = { x: clickCol, y: clickRow };
+  }
 });
 
 // modal buttons
 document.getElementById('take-all-btn').addEventListener('click', takeAllItems);
 document.getElementById('close-modal-btn').addEventListener('click', closeChestModal);
-document.getElementById('npc-close-btn').addEventListener('click', closeNpcDialog);
+document.getElementById('npc-close-sidebar').addEventListener('click', closeNpcDialog);
 
 // ================================================================
 //  UPDATE
@@ -1514,7 +1864,7 @@ function update(dt) {
                 : (fSide === 0 ? -5 : 5);
       const fOy = (player.facing === 'left' || player.facing === 'right')
                 ? (fSide === 0 ? -4 : 4) : 0;
-      footsteps.push({ x: stepCx + fOx, y: stepCy + fOy, age: 0 });
+      footsteps.push({ x: stepCx + fOx, y: stepCy + fOy, age: 0, facing: player.facing });
       if (footsteps.length > 12) footsteps.shift();
 
       player.tileX  = player.targetX;
@@ -1523,6 +1873,11 @@ function update(dt) {
       player.pxY    = endY;
       player.moving = false;
       player.walkFrame = 1 - player.walkFrame;
+
+      // clear click target if arrived
+      if (clickTarget && player.tileX === clickTarget.x && player.tileY === clickTarget.y) {
+        clickTarget = null;
+      }
 
       // check door
       const tile = ROOMS[roomIdx].map[player.tileY][player.tileX];
@@ -1554,6 +1909,26 @@ function update(dt) {
       if (tile === T.DOOR_D && roomIdx === 2) {
         const sp = ROOMS[1].entryFromFarmland;
         startTransition(1, sp.x, sp.y);
+        return;
+      }
+      if (tile === T.DOOR_R && roomIdx === 3) {
+        const sp = ROOMS[4].entryFromRowanoak;
+        startTransition(4, sp.x, sp.y);
+        return;
+      }
+      if (tile === T.DOOR_L && roomIdx === 4) {
+        const sp = ROOMS[3].entryFromRiverside;
+        startTransition(3, sp.x, sp.y);
+        return;
+      }
+      if (tile === T.DOOR_FL && roomIdx === 2) {
+        const sp = ROOMS[5].entryFromFarmland;
+        startTransition(5, sp.x, sp.y);
+        return;
+      }
+      if (tile === T.DOOR_FO && roomIdx === 5) {
+        const sp = ROOMS[2].entryFromForest;
+        startTransition(2, sp.x, sp.y);
         return;
       }
 
@@ -1628,6 +2003,14 @@ function render() {
   // ── footsteps ───────────────────────────────────────────────
   drawFootsteps();
 
+  // ── click target border ──────────────────────────────────────
+  if (clickTarget) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(clickTarget.x * TILE + 1, clickTarget.y * TILE + 1, TILE - 2, TILE - 2);
+    ctx.lineWidth = 1;
+  }
+
   // ── NPCs ────────────────────────────────────────────────────
   for (const npc of NPCS) {
     if (npc.room === roomIdx) drawNPC(npc);
@@ -1635,8 +2018,8 @@ function render() {
 
   // ── storeroom building label (village square) ────────────────
   if (roomIdx === 1) {
-    const lx = 15 * TILE;  // col 15 = storeroom door
-    const ly = 9 * TILE;   // row 9 = building top
+    const lx = 13 * TILE;  // col 13 = storeroom door
+    const ly = 7 * TILE;   // row 7 = building top
     const label = 'Storeroom';
     ctx.font = 'bold 9px monospace';
     const tw = ctx.measureText(label).width;
@@ -1678,8 +2061,12 @@ function render() {
     if (tile === T.DOOR_STORE && roomIdx === 1) drawHint('Enter ★ Storeroom');
     if (tile === T.DOOR_R && roomIdx === 1)     drawHint('Enter → Rowanoak Village');
     if (tile === T.DOOR_L && roomIdx === 3)     drawHint('Enter ◀ Village Square');
+    if (tile === T.DOOR_R && roomIdx === 3)     drawHint('Enter → Riverside Bridge');
+    if (tile === T.DOOR_L && roomIdx === 4)     drawHint('Enter ◀ Rowanoak Village');
     if (tile === T.DOOR_U) drawHint('Enter ▲ Farmland');
     if (tile === T.DOOR_D) drawHint('Enter ▼ Village Square');
+    if (tile === T.DOOR_FL && roomIdx === 2) drawHint('Enter ▲ Forest');
+    if (tile === T.DOOR_FO && roomIdx === 5) drawHint('Enter ▼ Farmland');
   }
 
   // ── hotbar ──────────────────────────────────────────────────
@@ -1689,7 +2076,7 @@ function render() {
   drawRoomName(room.name);
 
   // ── stats panel (right side) ────────────────────────────────
-  drawStatsPanel();
+  updateSidebar();
 
   // ── fade overlay ────────────────────────────────────────────
   if (fade.active && fade.alpha > 0) {
