@@ -71,6 +71,20 @@
       gap: 12px;
     }
 
+    #region-image-panel {
+      background: #1a0d04;
+      border: 2px solid #8a5a20;
+      border-radius: 8px;
+      overflow: hidden;
+      line-height: 0;
+    }
+
+    #region-img {
+      width: 100%;
+      display: block;
+      border-radius: 6px;
+    }
+
     #stats-panel {
       background: #1a0d04;
       border: 2px solid #8a5a20;
@@ -243,6 +257,9 @@
     <p class="controls-hint">WASD / Arrow Keys · Click to navigate · E to interact · 1–5 select hotbar slot</p>
   </div>
   <div id="sidebar">
+    <div id="region-image-panel">
+      <img id="region-img" src="images/storefront.png" alt="Region">
+    </div>
     <div id="stats-panel">
       <div class="panel-title">PLAYER STATS</div>
       <div class="stat-row">Level: <span id="s-level">1</span></div>
@@ -573,9 +590,9 @@ let chestOpen  = false;
 let modalOpen  = false;
 
 const player = {
-  tileX: 22, tileY: 8,
-  pxX: 22*TILE, pxY: 8*TILE,
-  targetX: 22, targetY: 8,
+  tileX: 12, tileY: 8,
+  pxX: 12*TILE, pxY: 8*TILE,
+  targetX: 12, targetY: 8,
   facing: 'down',
   path: [],            // queued tiles (mouse-click pathfinding)
   walkTimer: 0,        // 0..WALK_DUR while mid-tile
@@ -654,6 +671,31 @@ const fade = { active:false, alpha:0, phase:'out', targetRoom:0, spawnX:0, spawn
 
 let lastTime = 0;
 let clickTarget = null;
+
+// ── region image mapping ─────────────────────────────────────────
+const ROOM_IMAGES = {
+  0: 'images/storefront.png',
+  1: 'images/townsquare.png',
+  2: 'images/farmhouse.png',
+  3: 'images/roanoak.png',
+  5: 'images/forest.png',
+};
+
+const NPC_IMAGES = {
+  'farmer_village': 'images/farmer.png',
+  'angry_farmer':   'images/farmer.png',
+  'barkeeper':      'images/baker.png',
+  'blacksmith':     'images/blacksmith.png',
+};
+
+function updateRegionImage(npcId) {
+  const img = document.getElementById('region-img');
+  if (npcId && NPC_IMAGES[npcId]) {
+    img.src = NPC_IMAGES[npcId];
+  } else if (roomIdx in ROOM_IMAGES) {
+    img.src = ROOM_IMAGES[roomIdx];
+  }
+}
 
 // ================================================================
 //  DRAWING HELPERS
@@ -1524,11 +1566,13 @@ function openNpcDialog(npc) {
   }
 
   document.getElementById('npc-dialog-sidebar').classList.remove('hidden');
+  updateRegionImage(npc.id);
 }
 
 function closeNpcDialog() {
   modalOpen = false;
   document.getElementById('npc-dialog-sidebar').classList.add('hidden');
+  updateRegionImage(null);
   canvas.focus();
 }
 
@@ -1589,6 +1633,7 @@ function applyTransition() {
   player.pxY    = fade.spawnY * TILE;
   player.moving = false;
   player.path   = [];
+  updateRegionImage(null);
 }
 
 // ================================================================
@@ -2102,6 +2147,7 @@ canvas.setAttribute('tabindex', '0');
 canvas.focus();
 player.pxX = player.tileX * TILE;
 player.pxY = player.tileY * TILE;
+updateRegionImage(null);
 requestAnimationFrame(loop);
 </script>
 </body>
