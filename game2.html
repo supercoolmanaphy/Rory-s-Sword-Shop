@@ -1646,7 +1646,7 @@ function openChestModal() {
       if (addToInventory(item)) {
         item.taken = true;
         btn.closest('.chest-item').remove();
-        if (CHEST_ITEMS.filter(i => !i.taken).length === 0) {
+        if (CHEST_ITEMS.every(i => i.taken)) {
           list.innerHTML = '<p style="color:#999;text-align:center;padding:16px 0;font-style:italic;margin:0;">This chest is empty.</p>';
           document.getElementById('take-all-btn').style.display = 'none';
         }
