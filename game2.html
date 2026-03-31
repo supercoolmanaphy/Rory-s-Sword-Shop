@@ -126,6 +126,22 @@
       transition: width 0.2s;
     }
 
+    #npc-portrait-panel {
+      background: #1a0d04;
+      border: 2px solid #8a5a20;
+      border-radius: 8px;
+      overflow: hidden;
+      line-height: 0;
+    }
+
+    #npc-portrait-panel.hidden { display: none; }
+
+    #npc-portrait-img {
+      width: 100%;
+      display: block;
+      border-radius: 6px;
+    }
+
     #npc-dialog-sidebar {
       background: #1a0d04;
       border: 2px solid #8a5a20;
@@ -267,6 +283,9 @@
       <div id="s-hp-bar-outer"><div id="s-hp-bar-fill" style="width:100%"></div></div>
       <div class="stat-row" id="s-coins-row">🪙 0 coins</div>
     </div>
+    <div id="npc-portrait-panel" class="hidden">
+      <img id="npc-portrait-img" src="" alt="NPC Portrait">
+    </div>
     <div id="npc-dialog-sidebar" class="hidden">
       <div class="panel-title" id="npc-name-sidebar">—</div>
       <p id="npc-text-sidebar" style="color:#ddd;font-size:13px;line-height:1.5;white-space:pre-line;margin:8px 0;"></p>
@@ -345,11 +364,16 @@ const T = Object.freeze({
   WINDMILL: 35,  // non-walkable windmill base
   TREE_T:   36,  // tall dark forest tree (non-walkable)
   MUSH:     37,  // red mushroom (walkable decoration)
+  DOOR_PL:  38,  // farmland → Planter's Farm (upward)
+  DOOR_LP:  39,  // Planter's Farm → farmland (downward)
+  DOOR_DF:  40,  // forest → deep forest (bottom-right of forest)
+  DOOR_FD:  41,  // deep forest → forest (exit of deep forest)
 });
 
 const WALKABLE = new Set([T.FLOOR, T.DOOR_R, T.DOOR_L, T.COBBLE, T.GRASS,
                            T.DOOR_U, T.DOOR_D, T.DIRT, T.CROP, T.DOOR_STORE,
-                           T.DOOR_FL, T.DOOR_FO, T.BRIDGE, T.MUSH]);
+                           T.DOOR_FL, T.DOOR_FO, T.BRIDGE, T.MUSH,
+                           T.DOOR_PL, T.DOOR_LP, T.DOOR_DF, T.DOOR_FD]);
 
 // ── short aliases for map building ──────────────────────────────
 const { FLOOR:F, WALL:W, DOOR_R:DR, DOOR_L:DL,
@@ -360,7 +384,8 @@ const { FLOOR:F, WALL:W, DOOR_R:DR, DOOR_L:DL,
         BLACK:BK, DOOR_U:DU, DOOR_D:DD, DIRT:DI, CROP:CP,
         HOUSE_W:HW, DOOR_CLOSED:DC, DOOR_STORE:DST,
         DOOR_FL:DFL, DOOR_FO:DFO, WATER:WA, BRIDGE:BR, WINDMILL:WND,
-        TREE_T:TRT, MUSH:MSH } = T;
+        TREE_T:TRT, MUSH:MSH,
+        DOOR_PL:DPL, DOOR_LP:DLP, DOOR_DF:DDF, DOOR_FD:DFD } = T;
 
 // ── room definitions ─────────────────────────────────────────────
 const ROOMS = [
@@ -435,8 +460,8 @@ const ROOMS = [
     name: 'Farmland',
     bgColor: '#2e5e1e',
     map: [
-      // row 0 – fence with forest door at col 1
-      [ Z,DFL, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
+      // row 0 – fence with forest door at col 1 and planter's farm door at col 14
+      [ Z,DFL, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z,DPL, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
       // rows 1-4 – farmhouse (right side, cols 20-28) + dirt path at col 14
       [ Z, G, G,TR, G, G, G, G, G, G, G, G, G, G,DI, G, G, G, G, G,HW,HW,HW,HW,HW,HW,HW,HW,HW, Z],
       [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G,DI, G, G, G, G, G,HW,HW,HW,HW,HW,HW,HW,HW,HW, Z],
@@ -463,6 +488,7 @@ const ROOMS = [
     chestTile:        null,
     entryFromVillage: { x: 14, y: 14 },  // arrival from village square
     entryFromForest:  { x: 1, y: 1 },    // arrival from forest
+    entryFromPlanters:{ x: 14, y: 1 },   // arrival from Planter's Farm
   },
 
   // ── Room 3 : Rowanoak Village ──────────────────────────────────
@@ -566,16 +592,90 @@ const ROOMS = [
       [ Z,TRT,TRT,TRT,TRT,TRT,TRT, G, G, G, G, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
       // row 14 – open grass near exit
       [ Z, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, Z],
-      // row 15 – bottom fence with exit door at col 1
-      [ Z,DFO, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
+      // row 15 – bottom fence with exit door at col 1 and deep forest door at col 28
+      [ Z,DFO, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z,DDF, Z],
     ],
     playerSpawn:        { x: 1, y: 14 },
     chestTile:          null,
     entryFromFarmland:  { x: 1, y: 14 },
+    entryFromDeepForest:{ x: 28, y: 14 },
   },
-];
+  // ── Room 6 : Deep Forest ──────────────────────────────────────
+  {
+    name: 'Deep Forest',
+    bgColor: '#060d04',
+    map: [
+      // row 0 – fence top with exit door back to forest at col 28
+      [ Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,DFD, Z],
+      // row 1 – entry from forest at col 28
+      [ Z,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,  G, Z],
+      // row 2 – path continues down col 28
+      [ Z,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,  G, Z],
+      // row 3 – turn left along cols 18–28
+      [ Z,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G, Z],
+      // row 4 – down col 18
+      [ Z,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,  G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 5
+      [ Z,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,  G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 6
+      [ Z,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,  G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 7
+      [ Z,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,  G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 8 – turn left along cols 9–18
+      [ Z,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 9 – down col 9
+      [ Z,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,  G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 10
+      [ Z,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,  G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 11 – mushroom along the path
+      [ Z,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,MSH,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 12
+      [ Z,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,  G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 13 – turn left along cols 2–14, mushroom at col 12
+      [ Z,TRT,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,MSH,  G,  G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 14 – dead end going down from col 2
+      [ Z,TRT,  G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
+      // row 15 – fence bottom
+      [ Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z, Z],
+    ],
+    playerSpawn:       { x: 28, y: 1 },
+    chestTile:         null,
+    entryFromForest:   { x: 28, y: 1 },
+  },
 
-// ── chest item catalogue ─────────────────────────────────────────
+  // ── Room 7 : Planter's Farm ────────────────────────────────────
+  {
+    name: "Planter's Farm",
+    bgColor: '#2e6010',
+    map: [
+      // row 0 – fence top
+      [ Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z, Z],
+      // row 1 – open entrance
+      [ Z,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G, Z],
+      // rows 2–10 – two large wheat fields (left: cols 2–11, right: cols 17–26) with dirt path at col 14
+      [ Z,  G, DI, DI, DI, DI, DI, DI, DI, DI, DI, DI,  G,  G, DI,  G,  G, DI, DI, DI, DI, DI, DI, DI, DI, DI, DI,  G,  G, Z],
+      [ Z,  G, CP, CP, CP, CP, CP, CP, CP, CP, CP, CP,  G,  G, DI,  G,  G, CP, CP, CP, CP, CP, CP, CP, CP, CP, CP,  G,  G, Z],
+      [ Z,  G, DI, DI, DI, DI, DI, DI, DI, DI, DI, DI,  G,  G, DI,  G,  G, DI, DI, DI, DI, DI, DI, DI, DI, DI, DI,  G,  G, Z],
+      [ Z,  G, CP, CP, CP, CP, CP, CP, CP, CP, CP, CP,  G,  G, DI,  G,  G, CP, CP, CP, CP, CP, CP, CP, CP, CP, CP,  G,  G, Z],
+      [ Z,  G, DI, DI, DI, DI, DI, DI, DI, DI, DI, DI,  G,  G, DI,  G,  G, DI, DI, DI, DI, DI, DI, DI, DI, DI, DI,  G,  G, Z],
+      [ Z,  G, CP, CP, CP, CP, CP, CP, CP, CP, CP, CP,  G,  G, DI,  G,  G, CP, CP, CP, CP, CP, CP, CP, CP, CP, CP,  G,  G, Z],
+      [ Z,  G, DI, DI, DI, DI, DI, DI, DI, DI, DI, DI,  G,  G, DI,  G,  G, DI, DI, DI, DI, DI, DI, DI, DI, DI, DI,  G,  G, Z],
+      [ Z,  G, CP, CP, CP, CP, CP, CP, CP, CP, CP, CP,  G,  G, DI,  G,  G, CP, CP, CP, CP, CP, CP, CP, CP, CP, CP,  G,  G, Z],
+      [ Z,  G, DI, DI, DI, DI, DI, DI, DI, DI, DI, DI,  G,  G, DI,  G,  G, DI, DI, DI, DI, DI, DI, DI, DI, DI, DI,  G,  G, Z],
+      // row 11 – open area between fields and NPC zone
+      [ Z,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G, DI,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G, Z],
+      // rows 12–14 – open grass; farm boy NPC is placed at col 13 row 12
+      [ Z,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G, DI,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G, Z],
+      [ Z,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G, DI,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G, Z],
+      [ Z,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G, DI,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G, Z],
+      // row 15 – fence with exit door back to farmland at col 14
+      [ Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,DLP,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z, Z],
+    ],
+    playerSpawn:        { x: 14, y: 14 },
+    chestTile:          null,
+    entryFromFarmland:  { x: 14, y: 14 },
+  },
+]; // ── chest item catalogue ─────────────────────────────────────────
 const CHEST_ITEMS = [
   { id:'sword',  name:'Rusty Sword',   icon:'⚔️',  desc:'An old but still sharp sword',              taken:false },
   { id:'bread',  name:'Stale Bread',   icon:'🍞',  desc:'Still edible… maybe',                        taken:false },
@@ -663,6 +763,16 @@ const NPCS = [
     hairColor: '#aa6020',
     accessory: null,
   },
+  {
+    id: 'farm_boy',
+    name: 'Farm Boy',
+    tileX: 13, tileY: 12,
+    room: 7,
+    dialog: ["Hey, I heard there is a monster that lives in the cave north of the Forest. Anyways, I have to get back to work."],
+    outfitColor: '#8a7a30',
+    hairColor: '#aa8040',
+    accessory: null,
+  },
 ];
 
 // transition (fade between rooms)
@@ -678,6 +788,8 @@ const ROOM_IMAGES = {
   2: 'images/farmhouse.png',
   3: 'images/roanoak.png',
   5: 'images/forest.png',
+  6: 'images/forest.png',
+  7: 'images/plantersfield.png',
 };
 
 const NPC_IMAGES = {
@@ -685,13 +797,12 @@ const NPC_IMAGES = {
   'angry_farmer':   'images/farmer.png',
   'barkeeper':      'images/baker.png',
   'blacksmith':     'images/blacksmith.png',
+  'farm_boy':       'images/planter.png',
 };
 
-function updateRegionImage(npcId) {
+function updateRegionImage() {
   const img = document.getElementById('region-img');
-  if (npcId && NPC_IMAGES[npcId]) {
-    img.src = NPC_IMAGES[npcId];
-  } else if (roomIdx in ROOM_IMAGES) {
+  if (roomIdx in ROOM_IMAGES) {
     img.src = ROOM_IMAGES[roomIdx];
   }
 }
@@ -1159,6 +1270,66 @@ function drawTile(type, col, row) {
       break;
     }
 
+    // ─ farmland → Planter's Farm door (upward, wheat) ────────────
+    case T.DOOR_PL: {
+      fr(x, y, TILE, TILE, '#5a5650');
+      fr(x+4, y+2, TILE-8, TILE-4, '#7a5a10');
+      fr(x+7, y+5, 10, 13, '#5a4008');
+      fr(x+7, y+20, 10, 12, '#5a4008');
+      fr(x+TILE/2-3, y+TILE-9, 5, 5, '#daa520');
+      ctx.fillStyle = '#ffdd44';
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('🌾', x+TILE/2, y+TILE/2+5);
+      ctx.textAlign = 'left';
+      break;
+    }
+
+    // ─ Planter's Farm → farmland door (downward, wheat) ──────────
+    case T.DOOR_LP: {
+      fr(x, y, TILE, TILE, '#5a5650');
+      fr(x+4, y+2, TILE-8, TILE-4, '#7a5a10');
+      fr(x+7, y+5, 10, 13, '#5a4008');
+      fr(x+7, y+20, 10, 12, '#5a4008');
+      fr(x+TILE/2-3, y+6, 5, 5, '#daa520');
+      ctx.fillStyle = '#ffdd44';
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('🌾', x+TILE/2, y+TILE/2+5);
+      ctx.textAlign = 'left';
+      break;
+    }
+
+    // ─ forest → deep forest door (bottom-right, dark) ────────────
+    case T.DOOR_DF: {
+      fr(x, y, TILE, TILE, '#1a2a10');
+      fr(x+4, y+2, TILE-8, TILE-4, '#0e1e08');
+      fr(x+7, y+5, 10, 13, '#080e04');
+      fr(x+7, y+20, 10, 12, '#080e04');
+      fr(x+TILE/2-3, y+6, 5, 5, '#446030');
+      ctx.fillStyle = '#446030';
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('▼', x+TILE/2, y+TILE/2+5);
+      ctx.textAlign = 'left';
+      break;
+    }
+
+    // ─ deep forest → forest door (upward, back to forest) ────────
+    case T.DOOR_FD: {
+      fr(x, y, TILE, TILE, '#1a2a10');
+      fr(x+4, y+2, TILE-8, TILE-4, '#0e1e08');
+      fr(x+7, y+5, 10, 13, '#080e04');
+      fr(x+7, y+20, 10, 12, '#080e04');
+      fr(x+TILE/2-3, y+TILE-9, 5, 5, '#446030');
+      ctx.fillStyle = '#88cc44';
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('▲', x+TILE/2, y+TILE/2+5);
+      ctx.textAlign = 'left';
+      break;
+    }
+
     default:
       break;
   }
@@ -1527,6 +1698,16 @@ function openNpcDialog(npc) {
   document.getElementById('npc-text-sidebar').textContent = npc.dialog.join('\n\n');
   document.getElementById('npc-shop-msg').textContent = '';
 
+  // Show NPC portrait under the stats panel
+  const portraitPanel = document.getElementById('npc-portrait-panel');
+  const portraitImg   = document.getElementById('npc-portrait-img');
+  if (NPC_IMAGES[npc.id]) {
+    portraitImg.src = NPC_IMAGES[npc.id];
+    portraitPanel.classList.remove('hidden');
+  } else {
+    portraitPanel.classList.add('hidden');
+  }
+
   const shopDiv = document.getElementById('npc-shop-sidebar');
   shopDiv.innerHTML = '';
   if (npc.shop && npc.shop.length > 0) {
@@ -1565,13 +1746,12 @@ function openNpcDialog(npc) {
   }
 
   document.getElementById('npc-dialog-sidebar').classList.remove('hidden');
-  updateRegionImage(npc.id);
 }
 
 function closeNpcDialog() {
   modalOpen = false;
   document.getElementById('npc-dialog-sidebar').classList.add('hidden');
-  updateRegionImage(null);
+  document.getElementById('npc-portrait-panel').classList.add('hidden');
   canvas.focus();
 }
 
@@ -1632,7 +1812,7 @@ function applyTransition() {
   player.pxY    = fade.spawnY * TILE;
   player.moving = false;
   player.path   = [];
-  updateRegionImage(null);
+  updateRegionImage();
 }
 
 // ================================================================
@@ -1975,6 +2155,26 @@ function update(dt) {
         startTransition(2, sp.x, sp.y);
         return;
       }
+      if (tile === T.DOOR_PL && roomIdx === 2) {
+        const sp = ROOMS[7].entryFromFarmland;
+        startTransition(7, sp.x, sp.y);
+        return;
+      }
+      if (tile === T.DOOR_LP && roomIdx === 7) {
+        const sp = ROOMS[2].entryFromPlanters;
+        startTransition(2, sp.x, sp.y);
+        return;
+      }
+      if (tile === T.DOOR_DF && roomIdx === 5) {
+        const sp = ROOMS[6].entryFromForest;
+        startTransition(6, sp.x, sp.y);
+        return;
+      }
+      if (tile === T.DOOR_FD && roomIdx === 6) {
+        const sp = ROOMS[5].entryFromDeepForest;
+        startTransition(5, sp.x, sp.y);
+        return;
+      }
 
       // next path step
       if (player.path.length > 0) {
@@ -2111,6 +2311,10 @@ function render() {
     if (tile === T.DOOR_D) drawHint('Enter ▼ Village Square');
     if (tile === T.DOOR_FL && roomIdx === 2) drawHint('Enter ▲ Forest');
     if (tile === T.DOOR_FO && roomIdx === 5) drawHint('Enter ▼ Farmland');
+    if (tile === T.DOOR_PL && roomIdx === 2) drawHint("Enter ▲ Planter's Farm");
+    if (tile === T.DOOR_LP && roomIdx === 7) drawHint('Enter ▼ Farmland');
+    if (tile === T.DOOR_DF && roomIdx === 5) drawHint('Enter ▼ Deep Forest');
+    if (tile === T.DOOR_FD && roomIdx === 6) drawHint('Enter ▲ Forest');
   }
 
   // ── hotbar ──────────────────────────────────────────────────
@@ -2146,7 +2350,7 @@ canvas.setAttribute('tabindex', '0');
 canvas.focus();
 player.pxX = player.tileX * TILE;
 player.pxY = player.tileY * TILE;
-updateRegionImage(null);
+updateRegionImage();
 requestAnimationFrame(loop);
 </script>
 </body>
