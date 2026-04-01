@@ -509,11 +509,11 @@ const ROOMS = [
       // row 7 – storeroom building top row at cols 11-14, well at cols 16-17, right door at col 29
       [ Z, G, G, G, G, G, G, G, G, G, C,HW,HW,HW,HW, G,WTL,WTR, G, C, G, G, G, G, G, G, G, G, G,DR],
       // row 8
-      [ Z, G, G, G, G, G, G, G, G, G, C,HW, G, G,HW, G,WBL,WBR, G, C, G, G, G, G, G, G, G, G, G,DR],
+      [ Z, G, G, G, G, G, G, G, G, G, C,HW,HW,HW,HW, G,WBL,WBR, G, C, G, G, G, G, G, G, G, G, G,DR],
       // row 9
-      [ Z, G, G, G, G, G, G, G, G, G, C,HW, G, G,HW, G, G, G, G, C, G, G, G, G, G, G, G, G, G, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, C,HW,HW,HW,HW, G, G, G, G, C, G, G, G, G, G, G, G, G, G, Z],
       // row 10 – storeroom door at col 13
-      [ Z, G, G, G, G, G, G, G, G, G, C,HW, G,DST,HW, G, G, G, G, C, G, G, G, G, G, G, G, G, G, Z],
+      [ Z, G, G, G, G, G, G, G, G, G, C,HW,HW,DST,HW, G, G, G, G, C, G, G, G, G, G, G, G, G, G, Z],
       // row 11 – NPCs stand here (barkeeper col 4, cook col 25)
       [ Z, G, G, G, G, G, G, G, G, G, C,SG, G, G, G, G, G, G, G, C, G, G, G, G, G, G, G, G, G, Z],
       // row 12 – buildings in bottom-left (cols 2-6) and bottom-right (cols 23-27)
@@ -1104,11 +1104,11 @@ const NPCS = [
     accessory: 'apron',
   },
   {
-    id: 'cook',
-    name: 'Cook',
+    id: 'baker',
+    name: 'Baker',
     tileX: 25, tileY: 11,
     room: 1,
-    dialog: ['Best stew north of the river!', "Come hungry, leave full — that's my motto."],
+    dialog: ['Best bread north of the river!', "Fresh from the oven — that's my motto."],
     outfitColor: '#dddddd',
     hairColor: '#888888',
     accessory: 'apron',
@@ -1220,14 +1220,15 @@ const ROOM_IMAGES = {
   9: 'images/cave1.png',
   10: 'images/cave5.png',
   11: 'images/cave3.png',
-  12: 'images/cave4.png',
+  12: 'images/Cave4.png',
   13: 'images/darktower.png',
 };
 
 const NPC_IMAGES = {
   'farmer_village': 'images/farmer.png',
   'angry_farmer':   'images/farmer.png',
-  'barkeeper':      'images/baker.png',
+  'barkeeper':      'images/barkeeper.png',
+  'baker':          'images/baker.png',
   'blacksmith':     'images/blacksmith.png',
   'farm_boy':       'images/planter.png',
   'jaque':          'images/jaque.png',
