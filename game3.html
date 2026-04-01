@@ -88,6 +88,14 @@ const ROWS   = 16;
 const GAME_W = COLS * TILE;  // 1200
 const GAME_H = ROWS * TILE;  // 640
 
+// ── game balance constants ────────────────────────────────────────
+const MAX_HEARTS           = 3;
+const ATTACK_COOLDOWN_DUR  = 0.55;
+const MIN_COBWEBS          = 4;
+const MAX_EXTRA_COBWEBS    = 3;
+const MIN_BITES            = 2;
+const MAX_EXTRA_BITES      = 3;
+
 // ── tile types ───────────────────────────────────────────────────
 const T_WALL  = 0;
 const T_FLOOR = 1;
@@ -172,7 +180,7 @@ const player = {
   moving: false,
   walkTimer: 0,
   walkFrame: 0,
-  hearts: 3,
+  hearts: MAX_HEARTS,
   invincible: false,
   invincibleTimer: 0,
   trapped: false,
@@ -309,7 +317,7 @@ function startBattle(monsterKey) {
   player.moving  = false;
   player.walkTimer = 0;
   player.walkFrame = 0;
-  player.hearts  = 3;
+  player.hearts  = MAX_HEARTS;
   player.invincible = false;
   player.invincibleTimer = 0;
   player.trapped = false;
@@ -331,7 +339,7 @@ function startBattle(monsterKey) {
 // ================================================================
 
 function doAttack() {
-  attackCooldown = 0.55;
+  attackCooldown = ATTACK_COOLDOWN_DUR;
   // sword slash animation at player tile (extends slightly forward)
   const dx = player.facing === 'right' ? 1 : player.facing === 'left' ? -1 : 0;
   const dy = player.facing === 'down'  ? 1 : player.facing === 'up'   ? -1 : 0;
@@ -362,7 +370,7 @@ function triggerMonsterAttack() {
 }
 
 function spawnCobwebs() {
-  const count = 4 + Math.floor(Math.random() * 3);
+  const count = MIN_COBWEBS + Math.floor(Math.random() * MAX_EXTRA_COBWEBS);
   const attempts = count * 8;
   let placed = 0;
   for (let i = 0; i < attempts && placed < count; i++) {
@@ -389,7 +397,7 @@ function spawnFireball() {
 }
 
 function spawnBites() {
-  const count = 2 + Math.floor(Math.random() * 3);
+  const count = MIN_BITES + Math.floor(Math.random() * MAX_EXTRA_BITES);
   // spawn around player position
   const placed = new Set();
   const attempts = count * 10;
@@ -1286,7 +1294,7 @@ function drawHUD() {
   // player hearts (top-left)
   const heartX = 16, heartY = 14;
   ctx.font = '24px serif';
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < MAX_HEARTS; i++) {
     ctx.globalAlpha = i < player.hearts ? 1 : 0.25;
     ctx.fillText('❤', heartX + i * 30, heartY + 14);
   }
