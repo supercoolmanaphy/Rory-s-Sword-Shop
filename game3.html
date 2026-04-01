@@ -139,21 +139,21 @@ const MONSTER_DATA = {
   spider: {
     name: 'Giant Spider',
     maxHp: 50,
-    attackInterval: 3.5,
+    attackInterval: 1.75,
     dungeon: 'spider',
     color: '#2a1a2a',
   },
   wizard: {
     name: 'Dark Wizard',
     maxHp: 100,
-    attackInterval: 4.5,
+    attackInterval: 2.25,
     dungeon: 'wizard',
     color: '#1a1040',
   },
   hellhound: {
     name: 'Hellhound',
     maxHp: 75,
-    attackInterval: 3.0,
+    attackInterval: 1.5,
     dungeon: 'hellhound',
     color: '#3a0808',
   },
@@ -185,6 +185,8 @@ const player = {
   invincibleTimer: 0,
   trapped: false,
   trappedTimer: 0,
+  confused: false,
+  confusedTimer: 0,
 };
 
 // ── monster state ────────────────────────────────────────────────
@@ -204,6 +206,8 @@ let monster = {
 let cobwebs      = []; // { col, row, phase:'warn'|'active', timer, lifeTimer }
 let fireballs    = []; // { type:'row'|'col', index, dir:'left'|'right'|'top', phase:'warn'|'fire', timer, pos }
 let biteAttacks  = []; // { col, row, phase:'warn'|'bite', timer }
+let fireWaves    = []; // { row, pos, dir:'right'|'left', phase:'warn'|'active', timer }
+let whirlwinds   = []; // { col, row, phase:'warn'|'active', timer, lifeTimer, rotation }
 
 // ── sword slash ──────────────────────────────────────────────────
 let swordAnim      = null; // { col, row, timer }
@@ -225,6 +229,8 @@ const DIRS = {
   a: [-1,0,'left'], arrowleft:  [-1,0,'left'],
   d: [ 1,0,'right'],arrowright: [ 1,0,'right'],
 };
+
+const CONFUSED_DIRS = [[0,-1,'up'],[0,1,'down'],[-1,0,'left'],[1,0,'right']];
 
 // ================================================================
 //  INPUT
@@ -259,7 +265,10 @@ document.addEventListener('keydown', e => {
   if (gameState === 'battle') {
     const dir = DIRS[lk];
     if (dir && !player.moving && !player.trapped) {
-      const [dx, dy, face] = dir;
+      let [dx, dy, face] = dir;
+      if (player.confused) {
+        [dx, dy, face] = CONFUSED_DIRS[Math.floor(Math.random() * 4)];
+      }
       player.facing = face;
       const nx = player.tileX + dx;
       const ny = player.tileY + dy;
@@ -302,6 +311,7 @@ function startBattle(monsterKey) {
   monster.hp     = data.maxHp;
   monster.attackTimer = data.attackInterval * 0.5; // first attack sooner
   monster.hitFlash = 0;
+  monster.damageTaken = 0;
   monster.tileX = 13;
   monster.tileY = 1;
 
@@ -322,10 +332,14 @@ function startBattle(monsterKey) {
   player.invincibleTimer = 0;
   player.trapped = false;
   player.trappedTimer = 0;
+  player.confused = false;
+  player.confusedTimer = 0;
 
   cobwebs     = [];
   fireballs   = [];
   biteAttacks = [];
+  fireWaves   = [];
+  whirlwinds  = [];
   footsteps   = [];
   swordAnim   = null;
   attackCooldown = 0;
@@ -348,14 +362,46 @@ function doAttack() {
     row:   player.tileY + dy,
     timer: 0,
   };
-  // deal damage to monster
+  // player must be within 1 tile (Chebyshev) of monster centre to deal damage
+  const mx = monster.tileX + 1;
+  const my = monster.tileY + 1;
+  if (Math.abs(player.tileX - mx) > 1 || Math.abs(player.tileY - my) > 1) return;
+
   if (monster.hp > 0) {
     monster.hp = Math.max(0, monster.hp - 5);
     monster.hitFlash = 0.4;
+    monster.damageTaken += 5;
+    // every 25 damage dealt the player is launched away
+    if (monster.damageTaken % 25 === 0) {
+      launchPlayer();
+    }
     if (monster.hp <= 0) {
       setTimeout(() => { gameState = 'win'; }, 400);
     }
   }
+}
+
+// ── launch player away from monster ─────────────────────────────
+function launchPlayer() {
+  const mx = monster.tileX + 1;
+  const my = monster.tileY + 1;
+  const dx = player.tileX - mx;
+  const dy = player.tileY - my;
+  let ldx = 0, ldy = 0;
+  if (dx === 0 && dy === 0) { ldy = 1; }
+  else if (Math.abs(dx) >= Math.abs(dy)) { ldx = dx > 0 ? 1 : -1; }
+  else { ldy = dy > 0 ? 1 : -1; }
+  let newX = player.tileX, newY = player.tileY;
+  for (let i = 0; i < 4; i++) {
+    const nx = newX + ldx, ny = newY + ldy;
+    if (isWalkable(nx, ny)) { newX = nx; newY = ny; }
+    else break;
+  }
+  player.tileX = newX; player.tileY = newY;
+  player.targetX = newX; player.targetY = newY;
+  player.pxX = newX * TILE; player.pxY = newY * TILE;
+  player.moving = false;
+  damageFlash = 0.5;
 }
 
 // ================================================================
@@ -364,9 +410,15 @@ function doAttack() {
 
 function triggerMonsterAttack() {
   const key = monster.key;
-  if (key === 'spider')    spawnCobwebs();
-  else if (key === 'wizard')   spawnFireball();
-  else if (key === 'hellhound') spawnBites();
+  if (key === 'spider') {
+    if (Math.random() < 0.5) spawnCobwebs();
+    else spawnWhirlwinds();
+  } else if (key === 'wizard') {
+    if (Math.random() < 0.55) spawnFireball();
+    else spawnFireWave();
+  } else if (key === 'hellhound') {
+    spawnBites();
+  }
 }
 
 function spawnCobwebs() {
@@ -383,6 +435,20 @@ function spawnCobwebs() {
   }
 }
 
+function spawnWhirlwinds() {
+  const count = 2 + Math.floor(Math.random() * 3); // 2–4 whirlwinds
+  const attempts = count * 10;
+  let placed = 0;
+  for (let i = 0; i < attempts && placed < count; i++) {
+    const col = 1 + Math.floor(Math.random() * (COLS - 2));
+    const row = 3 + Math.floor(Math.random() * (ROWS - 5));
+    if (currentDungeon.map[row][col] === T_FLOOR) {
+      whirlwinds.push({ col, row, phase: 'warn', timer: 0, lifeTimer: 0, rotation: 0 });
+      placed++;
+    }
+  }
+}
+
 function spawnFireball() {
   if (Math.random() < 0.55) {
     // horizontal: choose a random row in the arena, attack from left or right
@@ -394,6 +460,14 @@ function spawnFireball() {
     const col = 1 + Math.floor(Math.random() * (COLS - 2));
     fireballs.push({ type: 'col', index: col, dir: 'top', phase: 'warn', timer: 0 });
   }
+}
+
+function spawnFireWave() {
+  const row = 2 + Math.floor(Math.random() * (ROWS - 4));
+  const dir = Math.random() < 0.5 ? 'right' : 'left';
+  // pos is the centre tile of the 5-tile band (float); start off-screen
+  const startPos = dir === 'right' ? -3 : COLS + 2;
+  fireWaves.push({ row, pos: startPos, dir, phase: 'warn', timer: 0 });
 }
 
 function spawnBites() {
@@ -474,6 +548,15 @@ function update(dt) {
     }
   }
 
+  // ── confused timer ────────────────────────────────────────────
+  if (player.confused) {
+    player.confusedTimer -= dt;
+    if (player.confusedTimer <= 0) {
+      player.confused     = false;
+      player.confusedTimer = 0;
+    }
+  }
+
   // ── attack cooldown ──────────────────────────────────────────
   if (attackCooldown > 0) attackCooldown -= dt;
 
@@ -516,14 +599,19 @@ function update(dt) {
 
       // check cobweb on landing
       checkCobwebCollision();
+      checkWhirlwindCollision();
     }
   } else if (!player.trapped) {
     // continuous key movement
     for (const [k, [dx, dy, face]] of Object.entries(DIRS)) {
       if (!keys[k]) continue;
-      player.facing = face;
-      const nx = player.tileX + dx;
-      const ny = player.tileY + dy;
+      let rdx = dx, rdy = dy, rface = face;
+      if (player.confused) {
+        [rdx, rdy, rface] = CONFUSED_DIRS[Math.floor(Math.random() * 4)];
+      }
+      player.facing = rface;
+      const nx = player.tileX + rdx;
+      const ny = player.tileY + rdy;
       if (isWalkable(nx, ny)) {
         player.targetX   = nx;
         player.targetY   = ny;
@@ -587,10 +675,54 @@ function update(dt) {
       bt.phase = 'bite';
       bt.timer = 0;
     } else if (bt.phase === 'bite') {
-      if (player.tileX === bt.col && player.tileY === bt.row) {
+      // 3×3 hit area centred on bt.col, bt.row
+      if (Math.abs(player.tileX - bt.col) <= 1 && Math.abs(player.tileY - bt.row) <= 1) {
         playerHit();
       }
       if (bt.timer >= 0.65) biteAttacks.splice(i, 1);
+    }
+  }
+
+  // ── update whirlwinds ─────────────────────────────────────────
+  for (let i = whirlwinds.length - 1; i >= 0; i--) {
+    const ww = whirlwinds[i];
+    ww.timer    += dt;
+    ww.rotation += dt * 3;
+    if (ww.phase === 'warn' && ww.timer >= 1.0) {
+      ww.phase = 'active';
+      ww.timer = 0;
+      ww.lifeTimer = 0;
+    } else if (ww.phase === 'active') {
+      ww.lifeTimer += dt;
+      if (player.tileX === ww.col && player.tileY === ww.row) {
+        applyConfusion();
+      }
+      if (ww.lifeTimer >= 5.0) whirlwinds.splice(i, 1);
+    }
+  }
+
+  // ── update fire waves ──────────────────────────────────────────
+  for (let i = fireWaves.length - 1; i >= 0; i--) {
+    const fw = fireWaves[i];
+    fw.timer += dt;
+    if (fw.phase === 'warn' && fw.timer >= 1.0) {
+      fw.phase = 'active';
+      fw.timer = 0;
+    } else if (fw.phase === 'active') {
+      const speed = 7; // tiles per second
+      fw.pos += (fw.dir === 'right' ? 1 : -1) * speed * dt;
+      // check player collision: player tile centre within 5-tile band
+      if (player.tileY === fw.row) {
+        const playerCenterPx = player.tileX * TILE + TILE / 2;
+        const bandLeft  = (fw.pos - 2.5) * TILE;
+        const bandRight = (fw.pos + 2.5) * TILE;
+        if (playerCenterPx >= bandLeft && playerCenterPx <= bandRight) {
+          playerHit();
+        }
+      }
+      if ((fw.dir === 'right' && fw.pos > COLS + 3) || (fw.dir === 'left' && fw.pos < -3)) {
+        fireWaves.splice(i, 1);
+      }
     }
   }
 }
@@ -605,6 +737,22 @@ function checkCobwebCollision() {
       }
       break;
     }
+  }
+}
+
+function checkWhirlwindCollision() {
+  for (const ww of whirlwinds) {
+    if (ww.phase === 'active' && ww.col === player.tileX && ww.row === player.tileY) {
+      applyConfusion();
+      break;
+    }
+  }
+}
+
+function applyConfusion() {
+  if (!player.confused) {
+    player.confused      = true;
+    player.confusedTimer = 3.0;
   }
 }
 
@@ -813,7 +961,60 @@ function drawCobweb(cw) {
   }
 }
 
-// ── fireball drawing ─────────────────────────────────────────────
+// ── whirlwind drawing ────────────────────────────────────────────
+function drawWhirlwind(ww) {
+  const x   = ww.col * TILE;
+  const y   = ww.row * TILE;
+  const cx2 = x + TILE / 2;
+  const cy2 = y + TILE / 2;
+
+  ctx.save();
+  if (ww.phase === 'warn') {
+    const pulse = 0.35 + 0.25 * Math.sin(Date.now() / 300);
+    ctx.fillStyle = `rgba(200,180,255,${pulse * 0.4})`;
+    ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
+    ctx.strokeStyle = `rgba(220,200,255,${pulse})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx2, cy2, TILE / 2 - 4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+  } else {
+    // active: spinning web / swirl
+    ctx.translate(cx2, cy2);
+    ctx.rotate(ww.rotation);
+    ctx.strokeStyle = 'rgba(200,180,255,0.80)';
+    ctx.lineWidth = 1.5;
+    for (let s = 0; s < 6; s++) {
+      const ang = (s / 6) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(ang) * (TILE / 2 - 2), Math.sin(ang) * (TILE / 2 - 2));
+      ctx.stroke();
+    }
+    for (const r of [4, 8, 13, 18]) {
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 1.7);
+      ctx.stroke();
+    }
+    // second layer rotates the other way
+    ctx.rotate(-ww.rotation * 2);
+    ctx.strokeStyle = 'rgba(160,140,220,0.55)';
+    for (let s = 0; s < 4; s++) {
+      const ang = (s / 4) * Math.PI * 2 + 0.3;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(ang) * (TILE / 2 - 5), Math.sin(ang) * (TILE / 2 - 5));
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(160,100,255,0.18)';
+    ctx.beginPath();
+    ctx.arc(0, 0, TILE / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 1;
+  }
+  ctx.restore();
+}
 function drawFireball(fb) {
   const t = Date.now() / 100;
   const map = currentDungeon.map;
@@ -907,39 +1108,85 @@ function drawFireball(fb) {
   ctx.restore();
 }
 
-// ── bite attack drawing ───────────────────────────────────────────
+// ── fire wave drawing ────────────────────────────────────────────
+function drawFireWave(fw) {
+  const t = Date.now() / 100;
+  const y = fw.row * TILE;
+  ctx.save();
+  if (fw.phase === 'warn') {
+    const pulse = 0.3 + 0.2 * Math.sin(t * 0.8);
+    ctx.fillStyle = `rgba(255,120,0,${pulse})`;
+    ctx.fillRect(0, y, GAME_W, TILE);
+    ctx.strokeStyle = `rgba(255,180,0,${pulse * 1.5})`;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, y + 1, GAME_W - 2, TILE - 2);
+    // directional arrow showing which side the wave comes from
+    const arrowX = fw.dir === 'right' ? 28 : GAME_W - 28;
+    ctx.fillStyle = `rgba(255,220,0,${pulse * 1.8})`;
+    ctx.font = 'bold 20px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(fw.dir === 'right' ? '►' : '◄', arrowX, y + TILE / 2 + 7);
+    ctx.textAlign = 'left';
+  } else {
+    // 5 animated fire tiles centred at fw.pos (float tile coordinate)
+    for (let i = -2; i <= 2; i++) {
+      const tileCol = fw.pos + i;
+      const startX  = tileCol * TILE;
+      const alpha   = 1 - Math.abs(i) * 0.08;
+      const fireGrad = ctx.createLinearGradient(0, y, 0, y + TILE);
+      fireGrad.addColorStop(0,   `rgba(255,200,50,${0.95 * alpha})`);
+      fireGrad.addColorStop(0.4, `rgba(255,80,0,${0.85 * alpha})`);
+      fireGrad.addColorStop(1,   `rgba(180,20,0,${0.5 * alpha})`);
+      ctx.fillStyle = fireGrad;
+      ctx.fillRect(startX, y, TILE, TILE);
+      const fh = 16 + 10 * Math.abs(Math.sin(t + tileCol * 0.7));
+      ctx.fillStyle = `rgba(255,220,60,${0.7 * alpha})`;
+      ctx.beginPath();
+      ctx.moveTo(startX + TILE / 2 - 8, y + TILE);
+      ctx.lineTo(startX + TILE / 2,     y + TILE - fh);
+      ctx.lineTo(startX + TILE / 2 + 8, y + TILE);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.shadowColor = '#ff6600';
+    ctx.shadowBlur  = 14;
+    ctx.fillStyle   = 'rgba(255,120,0,0.4)';
+    ctx.fillRect((fw.pos - 2.5) * TILE, y, 5 * TILE, TILE);
+    ctx.shadowBlur  = 0;
+  }
+  ctx.lineWidth = 1;
+  ctx.restore();
+}
 function drawBite(bt) {
-  const x  = bt.col * TILE;
-  const y  = bt.row * TILE;
-  const cx2 = x + TILE / 2;
-  const cy2 = y + TILE / 2;
-  const t  = Date.now() / 200;
+  // 3×3 area centred on bt.col, bt.row
+  const bx  = (bt.col - 1) * TILE;
+  const by  = (bt.row - 1) * TILE;
+  const bw  = 3 * TILE;
+  const bh  = 3 * TILE;
+  const cx2 = bt.col * TILE + TILE / 2;
+  const cy2 = bt.row * TILE + TILE / 2;
+  const t   = Date.now() / 200;
 
   ctx.save();
   if (bt.phase === 'warn') {
     const pulse = 0.4 + 0.25 * Math.sin(t * Math.PI * 2);
-    ctx.fillStyle = `rgba(0,0,0,${pulse * 0.75})`;
-    ctx.beginPath();
-    ctx.ellipse(cx2, cy2 + 4, TILE / 2 - 4, TILE / 2 - 8, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle = `rgba(0,0,0,${pulse * 0.6})`;
+    ctx.fillRect(bx, by, bw, bh);
     ctx.strokeStyle = `rgba(80,0,0,${pulse})`;
     ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.ellipse(cx2, cy2 + 4, TILE / 2 - 4, TILE / 2 - 8, 0, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.strokeRect(bx + 2, by + 2, bw - 4, bh - 4);
     ctx.lineWidth = 1;
   } else {
-    // bite animation: snapping teeth
+    // bite animation: snapping teeth across the 3×3 area
     const bp = Math.min(1, bt.timer / 0.3);
-    const jawOpen  = bp < 0.5 ? bp * 2 : 2 - bp * 2;
-    const jawGap   = jawOpen * 14;
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(x, y, TILE, TILE);
-    // upper jaw
+    const jawOpen = bp < 0.5 ? bp * 2 : 2 - bp * 2;
+    const jawGap  = jawOpen * 18;
+    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    ctx.fillRect(bx, by, bw, bh);
     ctx.fillStyle = '#e8e0d0';
-    const toothW = 6, toothH = 10;
-    for (let i = 0; i < 3; i++) {
-      const tx2 = cx2 - 9 + i * 9;
+    const toothW = 8, toothH = 12;
+    for (let i = 0; i < 5; i++) {
+      const tx2 = bx + 10 + i * (bw - 20) / 4;
       ctx.beginPath();
       ctx.moveTo(tx2 - toothW / 2, cy2 - jawGap / 2);
       ctx.lineTo(tx2 + toothW / 2, cy2 - jawGap / 2);
@@ -947,9 +1194,8 @@ function drawBite(bt) {
       ctx.closePath();
       ctx.fill();
     }
-    // lower jaw
-    for (let i = 0; i < 3; i++) {
-      const tx2 = cx2 - 9 + i * 9;
+    for (let i = 0; i < 5; i++) {
+      const tx2 = bx + 10 + i * (bw - 20) / 4;
       ctx.beginPath();
       ctx.moveTo(tx2 - toothW / 2, cy2 + jawGap / 2);
       ctx.lineTo(tx2 + toothW / 2, cy2 + jawGap / 2);
@@ -959,8 +1205,8 @@ function drawBite(bt) {
     }
     // gum
     ctx.fillStyle = 'rgba(180,20,20,0.7)';
-    ctx.fillRect(cx2 - 15, cy2 - jawGap / 2 - 5, 30, 5);
-    ctx.fillRect(cx2 - 15, cy2 + jawGap / 2,     30, 5);
+    ctx.fillRect(bx, cy2 - jawGap / 2 - 6, bw, 6);
+    ctx.fillRect(bx, cy2 + jawGap / 2,      bw, 6);
   }
   ctx.restore();
 }
@@ -1311,6 +1557,17 @@ function drawHUD() {
     ctx.textAlign = 'left';
   }
 
+  // confused indicator
+  if (player.confused) {
+    ctx.fillStyle = 'rgba(100,60,200,0.12)';
+    ctx.fillRect(0, 0, GAME_W, GAME_H);
+    ctx.fillStyle = '#dd99ff';
+    ctx.font = 'bold 14px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('😵 Confused!', GAME_W / 2, GAME_H - 40);
+    ctx.textAlign = 'left';
+  }
+
   // attack button hint
   if (attackCooldown <= 0) {
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -1491,9 +1748,19 @@ function renderBattle() {
     if (cw.phase === 'warn') drawCobweb(cw);
   }
 
+  // whirlwinds (warn phase)
+  for (const ww of whirlwinds) {
+    if (ww.phase === 'warn') drawWhirlwind(ww);
+  }
+
   // fireballs (warn phase)
   for (const fb of fireballs) {
     if (fb.phase === 'warn') drawFireball(fb);
+  }
+
+  // fire waves (warn phase)
+  for (const fw of fireWaves) {
+    if (fw.phase === 'warn') drawFireWave(fw);
   }
 
   // bite attacks (warn phase)
@@ -1509,9 +1776,19 @@ function renderBattle() {
     if (cw.phase === 'active') drawCobweb(cw);
   }
 
+  // whirlwinds (active phase)
+  for (const ww of whirlwinds) {
+    if (ww.phase === 'active') drawWhirlwind(ww);
+  }
+
   // fireballs (fire phase)
   for (const fb of fireballs) {
     if (fb.phase === 'fire') drawFireball(fb);
+  }
+
+  // fire waves (active phase)
+  for (const fw of fireWaves) {
+    if (fw.phase === 'active') drawFireWave(fw);
   }
 
   // bite attacks (bite phase)
