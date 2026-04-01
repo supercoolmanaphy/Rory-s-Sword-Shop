@@ -2919,6 +2919,13 @@ function applyTransition() {
   player.pxY    = fade.spawnY * TILE;
   player.moving = false;
   player.path   = [];
+  // ── move following pig to the new room ──────────────────────
+  const pig = NPCS.find(n => n.id === 'pig');
+  if (pig && pig.following) {
+    pig.room  = roomIdx;
+    pig.tileX = player.tileX;
+    pig.tileY = player.tileY;
+  }
   updateRegionImage();
 }
 
@@ -3216,6 +3223,20 @@ function update(dt) {
     if (caveDarknessMsg.timer <= 0) caveDarknessMsg = null;
   }
 
+  // ── pig poop timer ─────────────────────────────────────────────
+  const _pig = NPCS.find(n => n.id === 'pig');
+  if (_pig && _pig.following) {
+    pigPoopTimer += dt;
+    if (pigPoopTimer >= 30) {
+      pigPoopTimer = 0;
+      pigPoops.push({ x: _pig.tileX, y: _pig.tileY, room: _pig.room, timer: 1 });
+    }
+  }
+  for (let _i = pigPoops.length - 1; _i >= 0; _i--) {
+    pigPoops[_i].timer -= dt;
+    if (pigPoops[_i].timer <= 0) pigPoops.splice(_i, 1);
+  }
+
   if (fade.active) {
     if (fade.phase === 'out') {
       fade.alpha = Math.min(1, fade.alpha + dt * 5);
@@ -3250,8 +3271,19 @@ function update(dt) {
       footsteps.push({ x: stepCx + fOx, y: stepCy + fOy, age: 0, facing: player.facing });
       if (footsteps.length > 12) footsteps.shift();
 
+      // ── pig follow: snap pig to the tile the player just vacated ──
+      const _prevTileX = player.tileX;
+      const _prevTileY = player.tileY;
+
       player.tileX  = player.targetX;
       player.tileY  = player.targetY;
+
+      const pig = NPCS.find(n => n.id === 'pig');
+      if (pig && pig.following && pig.room === roomIdx) {
+        pig.tileX  = _prevTileX;
+        pig.tileY  = _prevTileY;
+        pig.facing = player.facing;
+      }
       player.pxX    = endX;
       player.pxY    = endY;
       player.moving = false;
@@ -3518,6 +3550,23 @@ function render() {
     ctx.lineWidth = 2;
     ctx.strokeRect(clickTarget.x * TILE + 1, clickTarget.y * TILE + 1, TILE - 2, TILE - 2);
     ctx.lineWidth = 1;
+  }
+
+  // ── pig poops ────────────────────────────────────────────────
+  for (const poop of pigPoops) {
+    if (poop.room !== roomIdx) continue;
+    const px = poop.x * TILE + TILE / 2;
+    const py = poop.y * TILE + TILE / 2 + 6;
+    const alpha = Math.min(1, poop.timer * 2); // fade out in last 0.5 s
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = `${TILE - 4}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('💩', px, py);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.restore();
   }
 
   // ── NPCs ────────────────────────────────────────────────────
