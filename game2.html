@@ -2700,7 +2700,7 @@ function openNpcDialog(npc) {
     if (specialDeliveryQuest === 'inactive') {
       document.getElementById('npc-text-sidebar').textContent =
         'Halt! None shall cross this bridge without proper authorization.\n\nOnly those on Special Delivery business may pass.';
-    } else if (specialDeliveryQuest === 'active') {
+    } else if (specialDeliveryQuest === 'active' && !guardsStepped) {
       document.getElementById('npc-text-sidebar').textContent =
         'Special Delivery? Right, we were informed.\n\nStep aside, let the courier through!';
       // Both guards step aside
@@ -2709,7 +2709,7 @@ function openNpcDialog(npc) {
           g.tileY = g.asideY;
         }
       }
-      specialDeliveryQuest = 'complete';
+      guardsStepped = true;
     } else {
       document.getElementById('npc-text-sidebar').textContent =
         'Welcome back, traveller. Safe travels across the bridge.';
@@ -2742,23 +2742,52 @@ function openNpcDialog(npc) {
       acceptBtn.textContent = '📦 Accept the Special Delivery quest';
       acceptBtn.addEventListener('click', () => {
         specialDeliveryQuest = 'active';
+        // pig starts following player
+        const pig = NPCS.find(n => n.id === 'pig');
+        if (pig) pig.following = true;
         document.getElementById('npc-text-sidebar').textContent =
-          'Wonderful! Hurry to the bridge — the guards know about the delivery. Thank you!';
+          'Wonderful! The pig will follow you. Hurry to the bridge — the guards know about the delivery. Thank you!';
         shopDiv.innerHTML = '';
       });
       shopDiv.appendChild(acceptBtn);
     } else if (specialDeliveryQuest === 'active') {
       document.getElementById('npc-text-sidebar').textContent =
-        "You haven't crossed yet! Please hurry — the bridge guards are expecting you.";
+        "The pig is following you! Take it to the Special Delivery Clerk at Jester's Castle, across the bridge.";
     } else {
       document.getElementById('npc-text-sidebar').textContent =
-        "Thank you so much for making the delivery! You're a true hero.";
+        "Thank you so much for delivering the pig! You're a true hero.";
     }
     document.getElementById('npc-dialog-sidebar').classList.remove('hidden');
     return;
   }
 
-  document.getElementById('npc-text-sidebar').textContent = npc.dialog.join('\n\n');
+  // ── Quest-target dialog (delivery clerk receives the pig) ──────
+  if (npc.questTarget === 'special_delivery') {
+    if (specialDeliveryQuest === 'active') {
+      const pig = NPCS.find(n => n.id === 'pig');
+      if (pig && pig.following) {
+        // complete the delivery
+        pig.following = false;
+        pig.room = 13;
+        pig.tileX = 18; pig.tileY = 7;
+        pig.facing = 'down';
+        specialDeliveryQuest = 'delivered';
+        document.getElementById('npc-text-sidebar').textContent =
+          "Oh my! The pig is here at last! Wonderful — Jaque will be so pleased. Thank you, courier! You've done a great service to Jester's Castle!";
+      } else {
+        document.getElementById('npc-text-sidebar').textContent =
+          "Welcome to Jester's Castle! I am still waiting for the Special Delivery from across the river... Have you brought the pig?";
+      }
+    } else if (specialDeliveryQuest === 'delivered') {
+      document.getElementById('npc-text-sidebar').textContent =
+        "Thank you again for delivering that fine pig! It has settled in beautifully here at Jester's Castle.";
+    } else {
+      document.getElementById('npc-text-sidebar').textContent = npc.dialog.join('\n\n');
+    }
+    document.getElementById('npc-dialog-sidebar').classList.remove('hidden');
+    return;
+  }
+
 
   if (npc.shop && npc.shop.length > 0) {
     const hr = document.createElement('hr');
@@ -3275,6 +3304,16 @@ function update(dt) {
         startTransition(3, sp.x, sp.y);
         return;
       }
+      if (tile === T.DOOR_R && roomIdx === 4) {
+        const sp = ROOMS[13].entryFromRiverside;
+        startTransition(13, sp.x, sp.y);
+        return;
+      }
+      if (tile === T.DOOR_L && roomIdx === 13) {
+        const sp = ROOMS[4].entryFromJestersCastle;
+        startTransition(4, sp.x, sp.y);
+        return;
+      }
       if (tile === T.DOOR_FL && roomIdx === 2) {
         const sp = ROOMS[5].entryFromFarmland;
         startTransition(5, sp.x, sp.y);
@@ -3435,6 +3474,15 @@ function render() {
       for (let col = 0; col < COLS; col++) {
         if (room.map[row][col] === T.WATER) {
           const wx = col * TILE, wy = row * TILE;
+          // top water tile: the tile above is not water — clip to prevent
+          // the animation strip overflowing into non-water tiles above
+          const isTopTile = row === 0 || room.map[row - 1][col] !== T.WATER;
+          if (isTopTile) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(wx, wy, TILE, TILE);
+            ctx.clip();
+          }
           // animated wave strips flowing downward
           const wOff1 = ((t + col * 0.4 + row * 0.3) % 1) * TILE;
           const wOff2 = ((t * 0.7 + col * 0.5 + row * 0.2 + 0.5) % 1) * TILE;
@@ -3449,6 +3497,7 @@ function render() {
           ctx.fillStyle = `rgba(180,220,255,${fAlpha})`;
           const fx = wx + 4 + ((Math.sin(t + col * 0.7) * 0.5 + 0.5) * (TILE - 10));
           ctx.fillRect(Math.round(fx), wy + Math.round(wOff1 + 1), 3, 2);
+          if (isTopTile) ctx.restore();
         }
       }
     }
@@ -3677,6 +3726,8 @@ function render() {
     if (tile === T.DOOR_L && roomIdx === 3)     drawHint('Enter ◀ Village Square');
     if (tile === T.DOOR_R && roomIdx === 3)     drawHint('Enter → Riverside Bridge');
     if (tile === T.DOOR_L && roomIdx === 4)     drawHint('Enter ◀ Rowanoak Village');
+    if (tile === T.DOOR_R && roomIdx === 4)     drawHint("Enter → Jester's Castle");
+    if (tile === T.DOOR_L && roomIdx === 13)    drawHint('Enter ◀ Riverside Bridge');
     if (tile === T.DOOR_U) drawHint('Enter ▲ Farmland');
     if (tile === T.DOOR_D) drawHint('Enter ▼ Village Square');
     if (tile === T.DOOR_FL && roomIdx === 2) drawHint('Enter ▲ Forest');
