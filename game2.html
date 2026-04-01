@@ -2221,10 +2221,11 @@ function drawPigNPC(npc) {
   ctx.beginPath(); ctx.ellipse(cx - 8, cy - 13, 3, 5, -0.3, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.ellipse(cx + 8, cy - 13, 3, 5, 0.3, 0, Math.PI * 2); ctx.fill();
 
-  // legs
+  // legs (4 legs for a proper pig)
   fr(cx - 9, cy + 10, 4, 7, '#ffb6c1');
   fr(cx - 3, cy + 10, 4, 7, '#ffb6c1');
   fr(cx + 3, cy + 10, 4, 7, '#ffb6c1');
+  fr(cx + 9, cy + 10, 4, 7, '#ffb6c1');
 
   // curly tail
   ctx.strokeStyle = '#ff9aab';
