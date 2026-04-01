@@ -2677,6 +2677,7 @@ function drawPigNPC(npc) {
 function adjacentNpc() {
   return NPCS.find(n => {
     if (n.room !== roomIdx) return false;
+    if (n.id === 'pig' && n.following) return false; // skip pig while it's following
     const dx = Math.abs(player.tileX - n.tileX);
     const dy = Math.abs(player.tileY - n.tileY);
     return (dx + dy) === 1;
@@ -3229,7 +3230,7 @@ function update(dt) {
     pigPoopTimer += dt;
     if (pigPoopTimer >= 30) {
       pigPoopTimer = 0;
-      pigPoops.push({ x: _pig.tileX, y: _pig.tileY, room: _pig.room, timer: 1 });
+      pigPoops.push({ x: _pig.tileX, y: _pig.tileY, room: _pig.room, timer: 2 });
     }
   }
   for (let _i = pigPoops.length - 1; _i >= 0; _i--) {
@@ -3387,6 +3388,11 @@ function update(dt) {
         return;
       }
       if (tile === T.CAVE_OPEN && roomIdx === 8) {
+        const _followingPig = NPCS.find(n => n.id === 'pig' && n.following);
+        if (_followingPig && specialDeliveryQuest === 'active') {
+          caveDarknessMsg = { text: "I need to deliver the pig to the Special Delivery Clerk across the river first!", timer: 4 };
+          return;
+        }
         const sp = ROOMS[9].entryFromCaveEntrance;
         startTransition(9, sp.x, sp.y);
         return;
@@ -3469,7 +3475,19 @@ function update(dt) {
     player.facing = face;
     const nx = player.tileX + dx;
     const ny = player.tileY + dy;
-    if (isWalkable(ROOMS[roomIdx], nx, ny)) {
+    // ── pig swap: if target tile is occupied by the following pig, swap places ──
+    const _followingPig = NPCS.find(n => n.id === 'pig' && n.following && n.room === roomIdx);
+    if (_followingPig && _followingPig.tileX === nx && _followingPig.tileY === ny) {
+      const OPPOSITE = { up: 'down', down: 'up', left: 'right', right: 'left' };
+      _followingPig.tileX = player.tileX;
+      _followingPig.tileY = player.tileY;
+      _followingPig.facing = OPPOSITE[face];
+      player.targetX   = nx;
+      player.targetY   = ny;
+      player.moving    = true;
+      player.walkTimer = 0;
+      player.path      = [];
+    } else if (isWalkable(ROOMS[roomIdx], nx, ny)) {
       player.targetX   = nx;
       player.targetY   = ny;
       player.moving    = true;
@@ -3560,7 +3578,7 @@ function render() {
     const alpha = Math.min(1, poop.timer * 2); // fade out in last 0.5 s
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.font = `${TILE - 4}px serif`;
+    ctx.font = `${Math.round((TILE - 4) * 0.7)}px serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('💩', px, py);
