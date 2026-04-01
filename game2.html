@@ -415,12 +415,21 @@ const T = Object.freeze({
   DOOR_DF:  40,  // forest → deep forest (bottom-right of forest)
   DOOR_FD:  41,  // deep forest → forest (exit of deep forest)
   SHRUB:    42,  // shrub blocking deep forest maze (requires Fire Sword to cut)
+  DOOR_DCE: 43,  // deep forest → cave entrance (bottom of deep forest)
+  DOOR_CED: 44,  // cave entrance → deep forest (bottom of cave entrance)
+  CAVE_OPEN:45,  // cave entrance → cave 1 (the dark rocky opening)
+  CAVE_BACK:46,  // cave 1 → cave entrance (exit tile at top of cave 1)
+  CAVE_FLOOR:47, // walkable rocky cave floor
+  CAVE_ROCK: 48, // jagged cave rock (non-walkable)
+  COBWEB_T:  49, // cobweb decoration (walkable)
 });
 
 const WALKABLE = new Set([T.FLOOR, T.DOOR_R, T.DOOR_L, T.COBBLE, T.GRASS,
                            T.DOOR_U, T.DOOR_D, T.DIRT, T.CROP, T.DOOR_STORE,
                            T.DOOR_FL, T.DOOR_FO, T.BRIDGE, T.MUSH,
-                           T.DOOR_PL, T.DOOR_LP, T.DOOR_DF, T.DOOR_FD]);
+                           T.DOOR_PL, T.DOOR_LP, T.DOOR_DF, T.DOOR_FD,
+                           T.DOOR_DCE, T.DOOR_CED, T.CAVE_OPEN, T.CAVE_BACK,
+                           T.CAVE_FLOOR, T.COBWEB_T]);
 
 // ── short aliases for map building ──────────────────────────────
 const { FLOOR:F, WALL:W, DOOR_R:DR, DOOR_L:DL,
@@ -433,7 +442,9 @@ const { FLOOR:F, WALL:W, DOOR_R:DR, DOOR_L:DL,
         DOOR_FL:DFL, DOOR_FO:DFO, WATER:WA, BRIDGE:BR, WINDMILL:WND,
         TREE_T:TRT, MUSH:MSH,
         DOOR_PL:DPL, DOOR_LP:DLP, DOOR_DF:DDF, DOOR_FD:DFD,
-        SHRUB:SHRB } = T;
+        SHRUB:SHRB,
+        DOOR_DCE:DDCE, DOOR_CED:DCED, CAVE_OPEN:COP, CAVE_BACK:CBK,
+        CAVE_FLOOR:CVF, CAVE_ROCK:CVR, COBWEB_T:CWT } = T;
 
 // ── room definitions ─────────────────────────────────────────────
 const ROOMS = [
@@ -683,12 +694,13 @@ const ROOMS = [
       [ Z,TRT,  G,  G,  G,  G,  G,  G,  G,  G,  G,  G,MSH,  G,  G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
       // row 14 – dead end going down from col 2
       [ Z,TRT,  G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, Z],
-      // row 15 – fence bottom
-      [ Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z, Z],
+      // row 15 – fence bottom; cave entrance door at col 2
+      [ Z,  Z,DDCE,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z,  Z, Z],
     ],
     playerSpawn:       { x: 28, y: 1 },
     chestTile:         null,
     entryFromForest:   { x: 28, y: 1 },
+    entryFromCaveEntrance: { x: 2, y: 14 },
   },
 
   // ── Room 7 : Planter's Farm ────────────────────────────────────
@@ -723,12 +735,100 @@ const ROOMS = [
     chestTile:          null,
     entryFromFarmland:  { x: 14, y: 14 },
   },
+
+  // ── Room 8 : Cave Entrance ─────────────────────────────────────
+  {
+    name: 'Cave Entrance',
+    bgColor: '#0a1206',
+    map: [
+      // row 0 – dense trees; rocky mound at top-right (cols 22–29)
+      [TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, W, W, W, W, W, W, W, W],
+      // row 1 – rocky mound; cave opening (COP) at col 25
+      [TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, W, W, W,COP, W, W, W, W],
+      // row 2 – path opens near rocks
+      [TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G, G, G, W, W, W, W, W],
+      // row 3 – path snakes right
+      [TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G,TRT,TRT, G, G, W, W, W, W],
+      // row 4
+      [TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G,TRT,TRT,TRT,TRT, G,TRT,TRT,TRT,TRT],
+      // row 5
+      [TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT],
+      // row 6
+      [TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT],
+      // row 7
+      [TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT],
+      // row 8
+      [TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT],
+      // row 9 – wide turning section
+      [TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G, G, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT],
+      // row 10
+      [TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT],
+      // row 11
+      [TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT],
+      // row 12
+      [TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT],
+      // row 13
+      [TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT],
+      // row 14 – player spawns here when arriving from deep forest
+      [TRT,TRT, G, G, G, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT],
+      // row 15 – fence bottom with exit back to deep forest at col 2
+      [ Z, Z,DCED, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
+    ],
+    playerSpawn:            { x: 4, y: 14 },
+    chestTile:              null,
+    entryFromDeepForest:    { x: 4, y: 14 },
+    entryFromCave1:         { x: 24, y: 2 },
+  },
+
+  // ── Room 9 : Cave 1 ────────────────────────────────────────────
+  {
+    name: 'Cave',
+    bgColor: '#050302',
+    map: [
+      // row 0 – cave top with exit back to cave entrance at col 14 (CBK)
+      [CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CBK,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR],
+      // row 1 – player entry area; keep open around col 14
+      [CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVF,CVF,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR],
+      // row 2 – wider floor near entrance (reachable without torch)
+      [CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVF,CVF,CVF,CVF,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR],
+      // row 3 – cobwebs near entrance edge (2 steps from door)
+      [CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CWT,CVF,CVF,CVF,CVF,CWT,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR],
+      // row 4 – deeper cave (requires torch); paths widen
+      [CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVF,CVF,CVF,CVR,CVR,CVF,CVF,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR],
+      // row 5
+      [CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVF,CVF,CVR,CVF,CVF,CVR,CVR,CVF,CVF,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR],
+      // row 6
+      [CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVF,CVF,CVR,CVR,CVF,CVF,CVF,CVR,CVR,CVF,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR],
+      // row 7 – cobwebs mid-cave
+      [CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVF,CVR,CVR,CWT,CVF,CVF,CVF,CWT,CVR,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR],
+      // row 8
+      [CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVF,CVF,CVR,CVR,CVR,CVF,CVF,CVF,CVR,CVR,CVF,CVF,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR],
+      // row 9
+      [CVR,CVR,CVR,CVR,CVR,CVR,CVF,CVF,CVR,CVR,CVR,CVR,CVF,CVR,CVF,CVR,CVR,CVR,CVF,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR],
+      // row 10 – cobwebs lower cave
+      [CVR,CVR,CVR,CVR,CVR,CVF,CVF,CVR,CVR,CVR,CWT,CVR,CVF,CVF,CVF,CVR,CWT,CVR,CVR,CVF,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR],
+      // row 11
+      [CVR,CVR,CVR,CVR,CVF,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVF,CVF,CVF,CVR,CVR,CVR,CVR,CVR,CVF,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR],
+      // row 12
+      [CVR,CVR,CVR,CVR,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVF,CVR,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR],
+      // row 13 – cobwebs deep
+      [CVR,CVR,CVR,CVF,CVF,CVR,CVR,CVR,CWT,CVR,CVR,CVR,CVF,CVF,CVF,CVR,CVR,CWT,CVR,CVR,CVR,CVF,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVR],
+      // row 14
+      [CVR,CVR,CVR,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVF,CVF,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVF,CVF,CVR,CVR,CVR,CVR,CVR,CVR],
+      // row 15 – cave floor
+      [CVR,CVR,CVF,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVF,CVF,CVF,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVR,CVF,CVF,CVR,CVR,CVR,CVR,CVR],
+    ],
+    playerSpawn:            { x: 14, y: 1 },
+    chestTile:              null,
+    entryFromCaveEntrance:  { x: 14, y: 1 },
+  },
 ]; // ── chest item catalogue ─────────────────────────────────────────
 const CHEST_ITEMS = [
-  { id:'sword',  name:'Rusty Sword',   icon:'⚔️',  desc:'An old but still sharp sword',              taken:false },
-  { id:'bread',  name:'Stale Bread',   icon:'🍞',  desc:'Still edible… maybe',                        taken:false },
-  { id:'coins',  name:'5 Gold Coins',  icon:'🪙',  desc:'5 shiny gold coins (added to your purse)',   taken:false, isCoins:true, amount:5 },
-  { id:'potion', name:'Health Potion', icon:'🧪',  desc:'Restores vitality in a pinch',               taken:false },
+  { id:'sword',       name:'Rusty Sword',   icon:'⚔️',  desc:'An old but still sharp sword',              taken:false },
+  { id:'bread',       name:'Stale Bread',   icon:'🍞',  desc:'Still edible… maybe',                        taken:false },
+  { id:'coins',       name:'5 Gold Coins',  icon:'🪙',  desc:'5 shiny gold coins (added to your purse)',   taken:false, isCoins:true, amount:5 },
+  { id:'potion',      name:'Health Potion', icon:'🧪',  desc:'Restores vitality in a pinch',               taken:false },
+  { id:'magic_torch', name:'Magic Torch',   icon:'🔦',  desc:'A magical torch that lights dark caves',     taken:false, isKey:true },
 ];
 
 // ── game state ───────────────────────────────────────────────────
@@ -743,6 +843,9 @@ const keyItems = [];           // permanent key items (id, name)
 // ── shrub state ──────────────────────────────────────────────────
 let shrubAnimation = null; // { col, row, timer } – fiery slash animation
 let shrubMessage   = null; // { text, timer } – hint message
+
+// ── cave darkness state ──────────────────────────────────────────
+let caveDarknessMsg = null; // { text, timer } – "too dark" message
 
 const player = {
   tileX: 12, tileY: 8,
@@ -830,6 +933,27 @@ const NPCS = [
     hairColor: '#aa8040',
     accessory: null,
   },
+  {
+    id: 'jaque',
+    name: 'Jaque',
+    tileX: 20, tileY: 12,
+    room: 7,
+    dialog: ["Bonjour! I tend to the animals here.", "This pig is my best friend. Very smart, this one!"],
+    outfitColor: '#6a4a80',
+    hairColor: '#3a2060',
+    accessory: null,
+  },
+  {
+    id: 'pig',
+    name: 'Pig',
+    tileX: 22, tileY: 12,
+    room: 7,
+    dialog: ["Oink!"],
+    outfitColor: '#ffb6c1',
+    hairColor: '#ffb6c1',
+    accessory: null,
+    isPig: true,
+  },
 ];
 
 // transition (fade between rooms)
@@ -847,6 +971,8 @@ const ROOM_IMAGES = {
   5: 'images/forest.png',
   6: 'images/forest.png',
   7: 'images/plantersfield.png',
+  8: 'images/caveentrance.png',
+  9: 'images/cave1.png',
 };
 
 const NPC_IMAGES = {
@@ -855,6 +981,7 @@ const NPC_IMAGES = {
   'barkeeper':      'images/baker.png',
   'blacksmith':     'images/blacksmith.png',
   'farm_boy':       'images/planter.png',
+  'jaque':          'images/jaque.png',
 };
 
 function updateRegionImage() {
@@ -1417,6 +1544,122 @@ function drawTile(type, col, row) {
       break;
     }
 
+    // ─ deep forest → cave entrance door ──────────────────────────
+    case T.DOOR_DCE: {
+      fr(x, y, TILE, TILE, '#1a1208');
+      fr(x+4, y+2, TILE-8, TILE-4, '#2a1a08');
+      fr(x+7, y+5, 10, 13, '#120e06');
+      fr(x+7, y+20, 10, 12, '#120e06');
+      fr(x+TILE/2-3, y+6, 5, 5, '#5a4020');
+      ctx.fillStyle = '#887755';
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('▼', x+TILE/2, y+TILE/2+5);
+      ctx.textAlign = 'left';
+      break;
+    }
+
+    // ─ cave entrance → deep forest door ──────────────────────────
+    case T.DOOR_CED: {
+      fr(x, y, TILE, TILE, '#1a1208');
+      fr(x+4, y+2, TILE-8, TILE-4, '#2a1a08');
+      fr(x+7, y+5, 10, 13, '#120e06');
+      fr(x+7, y+20, 10, 12, '#120e06');
+      fr(x+TILE/2-3, y+TILE-9, 5, 5, '#5a4020');
+      ctx.fillStyle = '#88cc44';
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('▲', x+TILE/2, y+TILE/2+5);
+      ctx.textAlign = 'left';
+      break;
+    }
+
+    // ─ cave opening (cave entrance → cave 1) ─────────────────────
+    case T.CAVE_OPEN: {
+      fr(x, y, TILE, TILE, '#5a5650');   // rocky surround
+      fr(x+2, y+2, TILE-4, 8, '#6a6660');
+      fr(x+2, y+2, 6, TILE-4, '#6a6660');
+      fr(x+TILE-8, y+2, 6, TILE-4, '#6a6660');
+      fr(x+6, y+8, TILE-12, TILE-10, '#08060a'); // dark opening
+      // subtle glow in darkness
+      ctx.fillStyle = 'rgba(40,0,60,0.6)';
+      ctx.fillRect(x+8, y+10, TILE-16, TILE-14);
+      ctx.fillStyle = '#888866';
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('▼', x+TILE/2, y+TILE/2+5);
+      ctx.textAlign = 'left';
+      break;
+    }
+
+    // ─ cave 1 exit (cave 1 → cave entrance) ──────────────────────
+    case T.CAVE_BACK: {
+      fr(x, y, TILE, TILE, '#5a5650');
+      fr(x+2, y, 6, TILE, '#6a6660');
+      fr(x+TILE-8, y, 6, TILE, '#6a6660');
+      fr(x+6, y, TILE-12, TILE-6, '#08060a');
+      ctx.fillStyle = 'rgba(100,160,255,0.15)';
+      ctx.fillRect(x+8, y+2, TILE-16, TILE-10);
+      ctx.fillStyle = '#88aaff';
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('▲', x+TILE/2, y+TILE/2);
+      ctx.textAlign = 'left';
+      break;
+    }
+
+    // ─ rocky cave floor ──────────────────────────────────────────
+    case T.CAVE_FLOOR: {
+      fr(x, y, TILE, TILE, '#1a1410');
+      fr(x+3,  y+12, 8,  4, '#221a14');
+      fr(x+20, y+25, 10, 3, '#221a14');
+      fr(x+28, y+8,  8,  5, '#221a14');
+      fr(x+8,  y+30, 5,  4, '#100c0a');
+      break;
+    }
+
+    // ─ jagged cave rock ──────────────────────────────────────────
+    case T.CAVE_ROCK: {
+      fr(x, y, TILE, TILE, '#0e0c0a');
+      // jagged rock shape
+      fr(x+6,  y+28, 28, 10, '#2a2420');
+      fr(x+4,  y+20, 16, 12, '#2a2420');
+      fr(x+18, y+16, 14, 16, '#302820');
+      fr(x+10, y+10, 10, 14, '#1e1a16');
+      fr(x+24, y+8,  8,  14, '#1e1a16');
+      fr(x+14, y+6,  8,  8,  '#161210');
+      // highlights
+      fr(x+6,  y+20, 4, 2, '#3a3028');
+      fr(x+20, y+16, 5, 2, '#3a3028');
+      fr(x+14, y+8,  4, 2, '#2a2620');
+      break;
+    }
+
+    // ─ cobweb ─────────────────────────────────────────────────────
+    case T.COBWEB_T: {
+      fr(x, y, TILE, TILE, '#1a1410');  // cave floor base
+      // web lines
+      ctx.strokeStyle = 'rgba(220,210,200,0.55)';
+      ctx.lineWidth = 1;
+      const wx = x + TILE/2, wy = y + 4;
+      // radial strands
+      for (let a = 0; a < 8; a++) {
+        const ang = (a / 8) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(wx, wy);
+        ctx.lineTo(wx + Math.cos(ang) * 16, wy + Math.sin(ang) * 16);
+        ctx.stroke();
+      }
+      // concentric arcs
+      for (let r = 5; r <= 15; r += 5) {
+        ctx.beginPath();
+        ctx.arc(wx, wy, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.lineWidth = 1;
+      break;
+    }
+
     default:
       break;
   }
@@ -1491,6 +1734,8 @@ function drawKnight(px, py, facing, walkFrame) {
 
 // ── NPC sprite ───────────────────────────────────────────────────
 function drawNPC(npc) {
+  if (npc.isPig) { drawPigNPC(npc); return; }
+
   const nx = npc.tileX * TILE;
   const ny = npc.tileY * TILE;
   const cx = nx + TILE / 2;
@@ -1681,7 +1926,8 @@ function drawStatsPanel() {
     keyItems.forEach((ki, idx) => {
       ctx.fillStyle = '#ffdd99';
       ctx.font = '10px monospace';
-      ctx.fillText(`🔥 ${ki.name}`, panelX + 10, kiY + 28 + idx * 14);
+      const kiIcon = ki.id === 'magic_torch' ? '🔦' : ki.id === 'fire_sword' ? '🔥' : '🔑';
+      ctx.fillText(`${kiIcon} ${ki.name}`, panelX + 10, kiY + 28 + idx * 14);
     });
   }
 }
@@ -1699,7 +1945,10 @@ function updateSidebar() {
     if (keyItems.length > 0) {
       kiRow.style.display = 'block';
       document.getElementById('s-key-items-list').textContent =
-        keyItems.map(i => '🔥 ' + i.name).join('\n');
+        keyItems.map(i => {
+          const icon = i.id === 'magic_torch' ? '🔦' : i.id === 'fire_sword' ? '🔥' : '🔑';
+          return icon + ' ' + i.name;
+        }).join('\n');
     } else {
       kiRow.style.display = 'none';
     }
@@ -1743,6 +1992,14 @@ function drawHotbar() {
         drawFireSwordIcon(sx + slotSize / 2, sy + slotSize / 2, 14);
         // golden key-item border overlay
         ctx.strokeStyle = '#ff6600';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(sx + 1.5, sy + 1.5, slotSize - 3, slotSize - 3);
+        ctx.lineWidth = 1;
+      } else if (item.id === 'magic_torch') {
+        // custom animated magic torch icon
+        drawMagicTorchIcon(sx + slotSize / 2, sy + slotSize / 2 + 8, 14);
+        // blue key-item border overlay
+        ctx.strokeStyle = '#2266ff';
         ctx.lineWidth = 2;
         ctx.strokeRect(sx + 1.5, sy + 1.5, slotSize - 3, slotSize - 3);
         ctx.lineWidth = 1;
@@ -1804,6 +2061,8 @@ function isWalkable(room, col, row) {
   if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return false;
   if (!WALKABLE.has(room.map[row][col])) return false;
   if (isBlockedByNpc(col, row)) return false;
+  // Cave 1 darkness restriction: without magic torch, only 3 rows from door
+  if (roomIdx === 9 && !hasMagicTorch() && row > 3) return false;
   return true;
 }
 
@@ -1811,6 +2070,12 @@ function isWalkable(room, col, row) {
 function hasFireSword() {
   return inventory.some(i => i && i.id === 'fire_sword') ||
          keyItems.some(i => i.id === 'fire_sword');
+}
+
+// ── Magic Torch helper ───────────────────────────────────────────
+function hasMagicTorch() {
+  return inventory.some(i => i && i.id === 'magic_torch') ||
+         keyItems.some(i => i.id === 'magic_torch');
 }
 
 // ── shrub adjacency ───────────────────────────────────────────────
@@ -1878,6 +2143,107 @@ function drawFireSwordIcon(cx, cy, size) {
   ctx.fillStyle = '#1a0800';
   ctx.fillRect(-3, s * 0.37, 6, s * 0.35);
   ctx.restore();
+}
+
+// ── draw a miniature magic torch icon (for hotbar) ────────────────
+function drawMagicTorchIcon(cx, cy, size) {
+  const t = Date.now() / 180;
+  const s = size;
+  ctx.save();
+  ctx.translate(cx, cy);
+  // torch handle
+  fr(-3, 0, 6, s, '#5a3010');
+  // wrap bands
+  fr(-3, s * 0.3, 6, 3, '#8a5a20');
+  fr(-3, s * 0.6, 6, 3, '#8a5a20');
+  // torch head (top)
+  fr(-5, -6, 10, 8, '#7a4a10');
+  // blue flame particles
+  for (let i = 0; i < 6; i++) {
+    const fi = i / 6;
+    const fy = -s * 0.5 - 4 - (8 + 5 * Math.abs(Math.sin(t + fi * Math.PI * 1.8)));
+    const fx = Math.sin(t * 1.4 + fi * 2.1) * 3;
+    const fr2 = Math.max(1, 4 - fi * 2.5);
+    const b2 = Math.max(180, Math.floor(255 - fi * 60));
+    ctx.beginPath();
+    ctx.arc(fx, fy, fr2, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(30,80,${b2},${0.95 - fi * 0.1})`;
+    ctx.shadowColor = '#2244ff';
+    ctx.shadowBlur = 8;
+    ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+// ── pig NPC sprite ────────────────────────────────────────────────
+function drawPigNPC(npc) {
+  const nx = npc.tileX * TILE;
+  const ny = npc.tileY * TILE;
+  const cx = nx + TILE / 2;
+  const cy = ny + TILE / 2;
+
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(cx, ny + TILE - 5, 10, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // body
+  ctx.fillStyle = '#ffb6c1';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 4, 13, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // head
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 6, 10, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // snout
+  ctx.fillStyle = '#ff9aab';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 2, 6, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // nostrils
+  ctx.fillStyle = '#cc6677';
+  ctx.beginPath(); ctx.arc(cx - 2, cy - 1, 1.5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 2, cy - 1, 1.5, 0, Math.PI * 2); ctx.fill();
+
+  // eyes
+  ctx.fillStyle = '#333';
+  ctx.beginPath(); ctx.arc(cx - 5, cy - 9, 1.5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 5, cy - 9, 1.5, 0, Math.PI * 2); ctx.fill();
+
+  // ears
+  ctx.fillStyle = '#ff9aab';
+  ctx.beginPath(); ctx.ellipse(cx - 8, cy - 13, 3, 5, -0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + 8, cy - 13, 3, 5, 0.3, 0, Math.PI * 2); ctx.fill();
+
+  // legs (4 legs for a proper pig)
+  fr(cx - 9, cy + 10, 4, 7, '#ffb6c1');
+  fr(cx - 3, cy + 10, 4, 7, '#ffb6c1');
+  fr(cx + 3, cy + 10, 4, 7, '#ffb6c1');
+  fr(cx + 9, cy + 10, 4, 7, '#ffb6c1');
+
+  // curly tail
+  ctx.strokeStyle = '#ff9aab';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx + 13, cy + 2, 4, 0, Math.PI * 1.5, false);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+
+  // name label
+  ctx.font = '8px monospace';
+  const tw = ctx.measureText(npc.name).width;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(Math.round(cx - tw/2 - 4), ny - 17, Math.round(tw + 8), 12);
+  ctx.fillStyle = '#ffccdd';
+  ctx.textAlign = 'center';
+  ctx.fillText(npc.name, cx, ny - 7);
+  ctx.textAlign = 'left';
 }
 
 // ── NPC adjacency / interaction ──────────────────────────────────
@@ -2119,7 +2485,12 @@ function addToInventory(item) {
   }
   const slot = inventory.indexOf(null);
   if (slot === -1) return false; // no space
-  inventory[slot] = { icon: item.icon, name: item.name, id: item.id };
+  inventory[slot] = { icon: item.icon, name: item.name, id: item.id, isKey: item.isKey || false };
+  // register key items
+  if (item.isKey && !keyItems.some(k => k.id === item.id)) {
+    keyItems.push({ id: item.id, name: item.name, icon: item.icon });
+    updateSidebar();
+  }
   return true;
 }
 
@@ -2164,6 +2535,8 @@ document.addEventListener('keydown', e => {
       player.moving    = true;
       player.walkTimer = 0;
       player.path      = [];
+    } else if (roomIdx === 9 && !hasMagicTorch() && ny > 3) {
+      caveDarknessMsg = { text: "It's too dark! I will need a torch to go any further!", timer: 4 };
     }
   }
 
@@ -2276,6 +2649,9 @@ canvas.addEventListener('click', e => {
   }
   if (player.path.length > 0) {
     clickTarget = { x: clickCol, y: clickRow };
+  } else if (roomIdx === 9 && !hasMagicTorch() && clickRow > 3) {
+    // Player clicked into the dark cave without a torch
+    caveDarknessMsg = { text: "It's too dark! I will need a torch to go any further!", timer: 4 };
   }
 });
 
@@ -2315,6 +2691,12 @@ function update(dt) {
   if (shrubMessage && shrubMessage.timer > 0) {
     shrubMessage.timer -= dt;
     if (shrubMessage.timer <= 0) shrubMessage = null;
+  }
+
+  // ── cave darkness message timer ────────────────────────────────
+  if (caveDarknessMsg && caveDarknessMsg.timer > 0) {
+    caveDarknessMsg.timer -= dt;
+    if (caveDarknessMsg.timer <= 0) caveDarknessMsg = null;
   }
 
   if (fade.active) {
@@ -2435,6 +2817,26 @@ function update(dt) {
         startTransition(5, sp.x, sp.y);
         return;
       }
+      if (tile === T.DOOR_DCE && roomIdx === 6) {
+        const sp = ROOMS[8].entryFromDeepForest;
+        startTransition(8, sp.x, sp.y);
+        return;
+      }
+      if (tile === T.DOOR_CED && roomIdx === 8) {
+        const sp = ROOMS[6].entryFromCaveEntrance;
+        startTransition(6, sp.x, sp.y);
+        return;
+      }
+      if (tile === T.CAVE_OPEN && roomIdx === 8) {
+        const sp = ROOMS[9].entryFromCaveEntrance;
+        startTransition(9, sp.x, sp.y);
+        return;
+      }
+      if (tile === T.CAVE_BACK && roomIdx === 9) {
+        const sp = ROOMS[8].entryFromCave1;
+        startTransition(8, sp.x, sp.y);
+        return;
+      }
 
       // next path step
       if (player.path.length > 0) {
@@ -2476,6 +2878,8 @@ function update(dt) {
       player.moving    = true;
       player.walkTimer = 0;
       player.path      = [];
+    } else if (roomIdx === 9 && !hasMagicTorch() && ny > 3) {
+      caveDarknessMsg = { text: "It's too dark! I will need a torch to go any further!", timer: 4 };
     }
     break; // only one direction per frame
   }
@@ -2551,6 +2955,37 @@ function render() {
   // ── player ──────────────────────────────────────────────────
   drawKnight(player.pxX, player.pxY, player.facing, player.walkFrame);
 
+  // ── cave 1 effects (darkness / torch glow) ──────────────────
+  if (roomIdx === 9) {
+    const pcx = Math.round(player.pxX + TILE / 2);
+    const pcy = Math.round(player.pxY + TILE / 2);
+    if (hasMagicTorch()) {
+      // Blue torch glow radiating from player
+      const glow = ctx.createRadialGradient(pcx, pcy, TILE * 0.3, pcx, pcy, TILE * 5);
+      glow.addColorStop(0,   'rgba(30,70,220,0.30)');
+      glow.addColorStop(0.4, 'rgba(10,40,160,0.12)');
+      glow.addColorStop(1,   'rgba(0,0,0,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, canvas.width, GAME_H);
+      // Inner bright halo on the player
+      ctx.save();
+      ctx.shadowColor = '#4488ff';
+      ctx.shadowBlur = 24;
+      ctx.fillStyle = 'rgba(60,120,255,0.25)';
+      ctx.beginPath();
+      ctx.ellipse(pcx, pcy, 18, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    } else {
+      // Darkness overlay — only a small circle near the entrance is visible
+      const dark = ctx.createRadialGradient(pcx, pcy, TILE * 0.6, pcx, pcy, TILE * 2.2);
+      dark.addColorStop(0, 'rgba(0,0,0,0)');
+      dark.addColorStop(1, 'rgba(0,0,0,0.97)');
+      ctx.fillStyle = dark;
+      ctx.fillRect(0, 0, canvas.width, GAME_H);
+    }
+  }
+
   // ── shrub fiery slash animation ──────────────────────────────
   if (shrubAnimation) {
     const sx = shrubAnimation.col * TILE;
@@ -2609,6 +3044,10 @@ function render() {
   if (shrubMessage && shrubMessage.timer > 0) {
     drawHint(shrubMessage.text);
   }
+  // cave darkness message
+  if (caveDarknessMsg && caveDarknessMsg.timer > 0) {
+    drawHint(caveDarknessMsg.text);
+  }
 
   // ── door hints ──────────────────────────────────────────────
   if (!modalOpen) {
@@ -2627,6 +3066,10 @@ function render() {
     if (tile === T.DOOR_LP && roomIdx === 7) drawHint('Enter ▼ Farmland');
     if (tile === T.DOOR_DF && roomIdx === 5) drawHint('Enter ▼ Deep Forest');
     if (tile === T.DOOR_FD && roomIdx === 6) drawHint('Enter ▲ Forest');
+    if (tile === T.DOOR_DCE && roomIdx === 6) drawHint('Enter ▼ Cave Entrance');
+    if (tile === T.DOOR_CED && roomIdx === 8) drawHint('Enter ▲ Deep Forest');
+    if (tile === T.CAVE_OPEN && roomIdx === 8) drawHint('Enter ▼ Cave');
+    if (tile === T.CAVE_BACK && roomIdx === 9) drawHint('Enter ▲ Cave Entrance');
   }
 
   // ── hotbar ──────────────────────────────────────────────────
