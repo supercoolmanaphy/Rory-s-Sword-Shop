@@ -2462,6 +2462,15 @@ function adjacentShrub() {
   return null;
 }
 
+// ── quest board adjacency (village square stalls cols 17-18, row 12) ──
+function isAdjacentToQuestBoard() {
+  if (roomIdx !== 1) return false;
+  for (const [sc, sr] of [[17, 12], [18, 12]]) {
+    if (Math.abs(player.tileX - sc) + Math.abs(player.tileY - sr) === 1) return true;
+  }
+  return false;
+}
+
 // ── interact with shrub ──────────────────────────────────────────
 function interactWithShrub(col, row) {
   // Show shrub image in corner
@@ -2864,6 +2873,32 @@ function closeNpcDialog() {
   canvas.focus();
 }
 
+function openQuestBoard() {
+  modalOpen = true;
+  canvas.blur();
+
+  const shopDiv = document.getElementById('npc-shop-sidebar');
+  shopDiv.innerHTML = '';
+  document.getElementById('npc-shop-msg').textContent = '';
+  document.getElementById('npc-name-sidebar').textContent = 'Quest Board';
+
+  const portraitPanel = document.getElementById('npc-portrait-panel');
+  const portraitImg   = document.getElementById('npc-portrait-img');
+  portraitImg.src = 'images/QuestBoard.png';
+  portraitPanel.classList.remove('hidden');
+
+  const blacksmithDone = fireSwordAwarded;
+  const deliveryDone   = specialDeliveryQuest === 'delivered';
+
+  const textEl = document.getElementById('npc-text-sidebar');
+  textEl.innerHTML =
+    `<span style="color:#ffeeaa;font-weight:bold;">Active Quests:</span><br><br>` +
+    `<span style="color:${blacksmithDone ? '#44ff44' : '#ff4444'};font-size:15px;">${blacksmithDone ? '✔' : '✗'}</span> Blacksmith's Challenge<br><br>` +
+    `<span style="color:${deliveryDone ? '#44ff44' : '#ff4444'};font-size:15px;">${deliveryDone ? '✔' : '✗'}</span> Special Delivery`;
+
+  document.getElementById('npc-dialog-sidebar').classList.remove('hidden');
+}
+
 // BFS – returns array of {x,y} steps (not including start, including end)
 function bfs(room, fromX, fromY, toX, toY) {
   if (!isWalkable(room, toX, toY)) return [];
@@ -3087,6 +3122,7 @@ document.addEventListener('keydown', e => {
       } else {
         const shrub = adjacentShrub();
         if (shrub) interactWithShrub(shrub.col, shrub.row);
+        else if (isAdjacentToQuestBoard()) openQuestBoard();
       }
     }
   }
@@ -3164,6 +3200,13 @@ canvas.addEventListener('click', e => {
     const dy = Math.abs(player.tileY - clickRow);
     if (dx + dy === 1) { interactWithShrub(clickCol, clickRow); return; }
     return; // shrub blocks pathing
+  }
+
+  // Click directly on quest board stall while adjacent → open quest board
+  if (roomIdx === 1 && (clickCol === 17 || clickCol === 18) && clickRow === 12) {
+    const dx = Math.abs(player.tileX - clickCol);
+    const dy = Math.abs(player.tileY - clickRow);
+    if (dx + dy === 1) { openQuestBoard(); return; }
   }
 
   // Navigate to clicked tile via BFS
@@ -3606,6 +3649,19 @@ function render() {
     ctx.textAlign = 'center';
     ctx.fillText(label, lx, ly - 5);
     ctx.textAlign = 'left';
+
+    // ── quest board label above market stalls (cols 17-18, row 12) ──
+    const qlx = 17.5 * TILE;  // center between stall cols 17 and 18
+    const qly = 12 * TILE;  // row 12
+    const qlabel = 'Quests';
+    ctx.font = 'bold 9px monospace';
+    const qtw = ctx.measureText(qlabel).width;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(Math.round(qlx - qtw/2 - 3), qly - 16, Math.round(qtw + 6), 13);
+    ctx.fillStyle = '#ffeeaa';
+    ctx.textAlign = 'center';
+    ctx.fillText(qlabel, qlx, qly - 5);
+    ctx.textAlign = 'left';
   }
 
   // ── Rowanoak Village sign ────────────────────────────────────
@@ -3775,6 +3831,7 @@ function render() {
     if (nearNpc) drawHint(`Press [E] to talk to ${nearNpc.name}`);
     const nearShrub = adjacentShrub();
     if (nearShrub && !shrubAnimation) drawHint('Press [E] to interact with the shrub');
+    if (isAdjacentToQuestBoard()) drawHint('Press [E] to view Quest Board');
   }
   // shrub "no sword" message
   if (shrubMessage && shrubMessage.timer > 0) {
