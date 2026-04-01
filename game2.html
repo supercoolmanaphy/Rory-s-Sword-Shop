@@ -746,7 +746,7 @@ const ROOMS = [
       // row 1 – rocky mound; cave opening (COP) at col 25
       [TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, W, W, W,COP, W, W, W, W],
       // row 2 – path opens near rocks
-      [TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G, G, G, W, W, W, W, W],
+      [TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G, G, G, G, W, W, W, W],
       // row 3 – path snakes right
       [TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G,TRT,TRT, G, G, W, W, W, W],
       // row 4
@@ -770,7 +770,7 @@ const ROOMS = [
       // row 13
       [TRT,TRT,TRT,TRT,TRT,TRT,TRT, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT],
       // row 14 – player spawns here when arriving from deep forest
-      [TRT,TRT, G, G, G, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT],
+      [TRT,TRT, G, G, G, G, G, G,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT,TRT],
       // row 15 – fence bottom with exit back to deep forest at col 2
       [ Z, Z,DCED, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
     ],
@@ -827,7 +827,7 @@ const CHEST_ITEMS = [
   { id:'sword',       name:'Rusty Sword',   icon:'⚔️',  desc:'An old but still sharp sword',              taken:false },
   { id:'bread',       name:'Stale Bread',   icon:'🍞',  desc:'Still edible… maybe',                        taken:false },
   { id:'coins',       name:'5 Gold Coins',  icon:'🪙',  desc:'5 shiny gold coins (added to your purse)',   taken:false, isCoins:true, amount:5 },
-  { id:'potion',      name:'Health Potion', icon:'🧪',  desc:'Restores vitality in a pinch',               taken:false },
+  { id:'fire_sword',  name:'Fire Sword',    icon:'🔥',  desc:'A blazing sword of immense power',           taken:false, isKey:true },
   { id:'magic_torch', name:'Magic Torch',   icon:'🔦',  desc:'A magical torch that lights dark caves',     taken:false, isKey:true },
 ];
 
@@ -1788,8 +1788,8 @@ function drawFootsteps() {
   for (const fp of footsteps) {
     const alpha = Math.max(0, 1 - fp.age) * 0.45;
     ctx.fillStyle = `rgba(0,0,0,${alpha})`;
-    const rot = fp.facing === 'up'    ?  0
-              : fp.facing === 'down'  ?  Math.PI
+    const rot = fp.facing === 'up'    ?  Math.PI
+              : fp.facing === 'down'  ?  0
               : fp.facing === 'left'  ?  Math.PI/2
               :                         -Math.PI/2;
     ctx.save();
