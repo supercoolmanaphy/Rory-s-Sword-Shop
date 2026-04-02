@@ -104,7 +104,7 @@
 
     <div id="sign-in-view">
       <h2>Admin Sign In</h2>
-      <button class="sign-in-btn" id="sign-in-btn">Sign in with Google</button>
+      <div id="sign-in-btn" style="margin-top:20px;display:flex;justify-content:center;"></div>
       <p id="error-msg"></p>
     </div>
 
@@ -118,24 +118,10 @@
   </div>
 </div>
 
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script type="module">
-  import { auth, ADMIN_EMAIL } from './firebase.js';
-  import {
-    GoogleAuthProvider,
-    signInWithPopup,
-    signOut,
-    onAuthStateChanged
-  } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+  import { ADMIN_EMAIL } from './admin-config.js';
 
-  const signInView = document.getElementById('sign-in-view');
-  const signedInView = document.getElementById('signed-in-view');
-  const signInBtn = document.getElementById('sign-in-btn');
-  const signOutBtn = document.getElementById('sign-out-btn');
-  const errorMsg = document.getElementById('error-msg');
-  const signedInEmail = document.getElementById('signed-in-email');
-
-  // Redirect destination after sign-in (supports ?next= query param).
-  // Validated to be same-origin to prevent open-redirect attacks.
   function getSafeNext(raw) {
     try {
       const url = new URL(raw, window.location.origin);
@@ -146,41 +132,58 @@
   const params = new URLSearchParams(window.location.search);
   const nextUrl = getSafeNext(params.get('next') || 'index.html');
 
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      signInView.style.display = 'none';
-      signedInView.style.display = 'block';
-      signedInEmail.textContent = `Signed in as ${user.email}`;
-    } else {
-      signInView.style.display = 'block';
-      signedInView.style.display = 'none';
+  const signInView = document.getElementById('sign-in-view');
+  const signedInView = document.getElementById('signed-in-view');
+  const signOutBtn = document.getElementById('sign-out-btn');
+  const signedInEmail = document.getElementById('signed-in-email');
+  const errorMsg = document.getElementById('error-msg');
+
+  function showSignedIn(email) {
+    signInView.style.display = 'none';
+    signedInView.style.display = 'block';
+    signedInEmail.textContent = `Signed in as ${email}`;
+  }
+
+  function showSignedOut() {
+    signInView.style.display = 'block';
+    signedInView.style.display = 'none';
+  }
+
+  const storedEmail = sessionStorage.getItem('adminEmail');
+  if (sessionStorage.getItem('adminVerified') === 'true' && storedEmail) {
+    showSignedIn(storedEmail);
+  } else {
+    showSignedOut();
+  }
+
+  function handleCredential(response) {
+    const base64 = response.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(base64));
+    if (payload.email !== ADMIN_EMAIL) {
+      errorMsg.textContent = 'Access denied. Only the admin account can sign in.';
+      return;
     }
+    sessionStorage.setItem('adminVerified', 'true');
+    sessionStorage.setItem('adminEmail', payload.email);
+    window.location.href = nextUrl;
+  }
+
+  window.addEventListener('load', () => {
+    google.accounts.id.initialize({
+      // Replace with your OAuth 2.0 Client ID from https://console.cloud.google.com/
+      client_id: 'YOUR_GOOGLE_CLIENT_ID',
+      callback: handleCredential
+    });
+    google.accounts.id.renderButton(
+      document.getElementById('sign-in-btn'),
+      { type: 'standard', text: 'sign_in_with', theme: 'outline', size: 'large', width: 340 }
+    );
   });
 
-  signInBtn.addEventListener('click', async () => {
-    errorMsg.textContent = '';
-    signInBtn.disabled = true;
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ login_hint: ADMIN_EMAIL });
-    try {
-      const result = await signInWithPopup(auth, provider);
-      if (result.user.email !== ADMIN_EMAIL) {
-        await signOut(auth);
-        errorMsg.textContent = 'Access denied. Only the admin account can sign in.';
-        signInBtn.disabled = false;
-        return;
-      }
-      window.location.href = nextUrl;
-    } catch (err) {
-      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
-        errorMsg.textContent = 'Sign-in failed. Please try again.';
-      }
-      signInBtn.disabled = false;
-    }
-  });
-
-  signOutBtn.addEventListener('click', async () => {
-    await signOut(auth);
+  signOutBtn.addEventListener('click', () => {
+    sessionStorage.removeItem('adminVerified');
+    sessionStorage.removeItem('adminEmail');
+    showSignedOut();
   });
 </script>
 
