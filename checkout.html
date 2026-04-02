@@ -19,6 +19,7 @@
       padding: 20px;
       text-align: center;
       font-size: 30px;
+      position: relative;
     }
 
     .container {
@@ -127,6 +128,27 @@
       padding: 30px 0;
     }
 
+    .admin-login-btn {
+      position: absolute;
+      top: 50%;
+      right: 20px;
+      transform: translateY(-50%);
+      padding: 8px 16px;
+      font-size: 14px;
+      background-color: #555;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .admin-login-btn:hover {
+      background-color: #000;
+    }
+
     .success-msg {
       display: none;
       text-align: center;
@@ -140,7 +162,7 @@
 </head>
 <body>
 
-  <header>Rory's Sword Shop</header>
+  <header>Rory's Sword Shop<a href="login.html" class="admin-login-btn">Admin Login</a></header>
 
   <div class="container">
     <a href="index.html" class="back">← Back to Shop</a>
