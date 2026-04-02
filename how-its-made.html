@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="images/sword5.jpg">
+  <title>How It's Made – Rory's Sword Shop</title>
+  <style>
+    * { cursor: url('images/cursor-sword.svg') 5 5, auto !important; }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background-color: #f4f4f4;
+    }
+
+    header {
+      background-color: #333;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 30px;
+      position: relative;
+    }
+
+    .header-cart {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      text-decoration: none;
+      color: white;
+      font-size: 18px;
+    }
+
+    .header-cart:hover {
+      color: #ccc;
+    }
+
+    .container {
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+    }
+
+    .back {
+      display: inline-block;
+      margin-bottom: 20px;
+      text-decoration: none;
+      color: blue;
+    }
+
+    h2 {
+      margin-bottom: 30px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+
+    .step {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .step img {
+      width: 100%;
+      height: 240px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    .step h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .step p {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .brand-footer {
+      text-align: center;
+      padding: 30px 20px;
+    }
+
+    .brand-footer img {
+      width: 160px;
+      height: auto;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    Rory's Sword Shop
+    <a href="checkout.html" class="header-cart">🛒 Cart (<span id="cart-count">0</span>)</a>
+  </header>
+
+  <div class="container">
+    <a href="index.html" class="back">← Back to Shop</a>
+    <h2>How It's Made</h2>
+
+    <div class="steps">
+
+      <!-- Step 1 -->
+      <div class="step">
+        <img src="images/Casting1.png" alt="Filling the Crucible">
+        <h3>1. Filling the Crucible</h3>
+        <p>We weigh out Copper and Tin to make the Bronze mixture. We used 10% Tin and 90% Copper in this mix.</p>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step">
+        <img src="images/Casting2.png" alt="Adding Borax as Flux">
+        <h3>2. Add Borax as Flux</h3>
+        <p>In order to pull contaminants out of the metal, Borax is added. Impurities bond to the Borax, and our molten metal becomes cleaner.</p>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step">
+        <img src="images/Casting3.png" alt="Pouring the Metal">
+        <h3>3. Pouring the Metal</h3>
+        <p>Carefully, the liquid Bronze is poured into my custom made Sword mold.</p>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step">
+        <img src="images/Casting4.png" alt="Sword in the Mold">
+        <h3>4. Sword in the Mold</h3>
+        <p>This is the sword as it comes out of the mold. It will need to be trimmed down, polished and sharpened.</p>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="step">
+        <img src="images/Casting5.png" alt="Finished Swords">
+        <h3>5. Finished Swords</h3>
+        <p>Here are some finished swords we made. Any imperfect swords can be made into spearheads, or melted down.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="brand-footer">
+    <img src="images/sword4.jpg" alt="Rory's Sword Shop logo">
+  </div>
+
+  <script src="cart.js"></script>
+  <script>
+    document.getElementById('cart-count').textContent = getCart().length;
+  </script>
+
+  <script src="cursor.js"></script>
+</body>
+</html>
