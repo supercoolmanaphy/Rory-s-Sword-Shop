@@ -127,6 +127,25 @@
       padding: 30px 0;
     }
 
+    .admin-login-btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      background-color: #333;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 12px;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .admin-login-btn:hover {
+      background-color: #000;
+    }
+
     .success-msg {
       display: none;
       text-align: center;
@@ -149,6 +168,8 @@
       <h2>Your Cart</h2>
 
       <div id="cart-contents"></div>
+
+      <a href="login.html" class="admin-login-btn">Admin Login</a>
 
       <div class="success-msg" id="success-msg">
         <h2>✓ Order Placed!</h2>
