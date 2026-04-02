@@ -144,9 +144,8 @@
 </div>
 
 <script src="cart.js"></script>
-<script>
-  // UPDATED PRODUCT IMAGE HERE TOO
-  const PRODUCT = { id: 'product4', name: 'Bronze Axe Head', price: 75.00, image: 'images/axe3.jpg' };
+<script type="module">
+  import { fetchProduct } from './products.js';
 
   const btn = document.querySelector('.add-to-cart');
   const cartCount = document.getElementById('cart-count');
@@ -159,7 +158,13 @@
 
   function updateCartCount() { cartCount.textContent = getCart().length; }
 
-  function updateBtn() {
+  function updateBtn(PRODUCT) {
+    if (!PRODUCT.inStock) {
+      btn.textContent = 'Out of Stock';
+      btn.disabled = true;
+      btn.classList.add('in-cart');
+      return;
+    }
     const inCart = getCart().some(i => i.id === PRODUCT.id);
     if (inCart) {
       btn.textContent = '✓ In Cart — Remove';
@@ -170,20 +175,28 @@
     }
   }
 
-  btn.addEventListener('click', () => {
-    let cart = getCart();
-    if (cart.some(i => i.id === PRODUCT.id)) {
-      cart = cart.filter(i => i.id !== PRODUCT.id);
-    } else {
-      cart.push(PRODUCT);
-    }
-    saveCart(cart);
-    updateBtn();
-    updateCartCount();
-  });
+  const product = await fetchProduct('product4');
+  if (product) {
+    document.querySelector('h1').textContent = product.name;
+    document.querySelector('p strong').parentElement.innerHTML = `<strong>Price:</strong> $${product.price.toFixed(2)}`;
 
-  updateBtn();
-  updateCartCount();
+    updateBtn(product);
+    updateCartCount();
+
+    if (product.inStock) {
+      btn.addEventListener('click', () => {
+        let cart = getCart();
+        if (cart.some(i => i.id === product.id)) {
+          cart = cart.filter(i => i.id !== product.id);
+        } else {
+          cart.push({ id: product.id, name: product.name, price: product.price, image: 'images/axe3.jpg' });
+        }
+        saveCart(cart);
+        updateBtn(product);
+        updateCartCount();
+      });
+    }
+  }
 </script>
 
 </body>
