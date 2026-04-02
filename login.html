@@ -31,24 +31,6 @@
       text-align: center;
     }
 
-    label {
-      display: block;
-      margin-top: 15px;
-      font-size: 14px;
-      font-weight: bold;
-    }
-
-    input[type="email"],
-    input[type="password"] {
-      width: 100%;
-      padding: 9px 10px;
-      margin-top: 5px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      font-size: 15px;
-      box-sizing: border-box;
-    }
-
     .sign-in-btn {
       display: block;
       width: 100%;
@@ -122,13 +104,7 @@
 
     <div id="sign-in-view">
       <h2>Admin Sign In</h2>
-      <label for="email">Email</label>
-      <input type="email" id="email" placeholder="admin@example.com" autocomplete="username">
-
-      <label for="password">Password</label>
-      <input type="password" id="password" placeholder="Password" autocomplete="current-password">
-
-      <button class="sign-in-btn" id="sign-in-btn">Sign In</button>
+      <button class="sign-in-btn" id="sign-in-btn">Sign in with Google</button>
       <p id="error-msg"></p>
     </div>
 
@@ -143,17 +119,16 @@
 </div>
 
 <script type="module">
-  import { auth } from './firebase.js';
+  import { auth, ADMIN_EMAIL } from './firebase.js';
   import {
-    signInWithEmailAndPassword,
+    GoogleAuthProvider,
+    signInWithPopup,
     signOut,
     onAuthStateChanged
   } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
 
   const signInView = document.getElementById('sign-in-view');
   const signedInView = document.getElementById('signed-in-view');
-  const emailInput = document.getElementById('email');
-  const passwordInput = document.getElementById('password');
   const signInBtn = document.getElementById('sign-in-btn');
   const signOutBtn = document.getElementById('sign-out-btn');
   const errorMsg = document.getElementById('error-msg');
@@ -184,24 +159,24 @@
 
   signInBtn.addEventListener('click', async () => {
     errorMsg.textContent = '';
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
-    if (!email || !password) {
-      errorMsg.textContent = 'Please enter your email and password.';
-      return;
-    }
     signInBtn.disabled = true;
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ login_hint: ADMIN_EMAIL });
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const result = await signInWithPopup(auth, provider);
+      if (result.user.email !== ADMIN_EMAIL) {
+        await signOut(auth);
+        errorMsg.textContent = 'Access denied. Only the admin account can sign in.';
+        signInBtn.disabled = false;
+        return;
+      }
       window.location.href = nextUrl;
     } catch (err) {
-      errorMsg.textContent = 'Incorrect email or password.';
+      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+        errorMsg.textContent = 'Sign-in failed. Please try again.';
+      }
       signInBtn.disabled = false;
     }
-  });
-
-  passwordInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') signInBtn.click();
   });
 
   signOutBtn.addEventListener('click', async () => {
