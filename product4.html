@@ -184,8 +184,7 @@
 <script src="cart.js"></script>
 <script type="module">
   import { fetchProduct, updateProductStock } from './products.js';
-  import { auth, ADMIN_EMAIL } from './firebase.js';
-  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+  import { ADMIN_EMAIL } from './admin-config.js';
 
   const btn = document.querySelector('.add-to-cart');
   const toggleBtn = document.querySelector('.toggle-stock');
@@ -257,21 +256,22 @@
       updateToggleBtn(product);
     });
 
-    onAuthStateChanged(auth, (user) => {
-      const isAdmin = user && user.email === ADMIN_EMAIL;
-      if (isAdmin) {
-        toggleBtn.style.display = 'inline-block';
-        updateToggleBtn(product);
-        authNav.innerHTML = `<a class="auth-link" id="sign-out-link" href="#">Sign Out</a>`;
-        document.getElementById('sign-out-link').addEventListener('click', async (e) => {
-          e.preventDefault();
-          await signOut(auth);
-        });
-      } else {
-        toggleBtn.style.display = 'none';
-        authNav.innerHTML = `<a class="auth-link" href="login.html?next=product4.html">Admin Sign In</a>`;
-      }
-    });
+    const isAdmin = sessionStorage.getItem('adminVerified') === 'true' &&
+                    sessionStorage.getItem('adminEmail') === ADMIN_EMAIL;
+    if (isAdmin) {
+      toggleBtn.style.display = 'inline-block';
+      updateToggleBtn(product);
+      authNav.innerHTML = `<a class="auth-link" id="sign-out-link" href="#">Sign Out</a>`;
+      document.getElementById('sign-out-link').addEventListener('click', (e) => {
+        e.preventDefault();
+        sessionStorage.removeItem('adminVerified');
+        sessionStorage.removeItem('adminEmail');
+        window.location.reload();
+      });
+    } else {
+      toggleBtn.style.display = 'none';
+      authNav.innerHTML = `<a class="auth-link" href="login.html?next=product4.html">Admin Sign In</a>`;
+    }
   }
 </script>
 
