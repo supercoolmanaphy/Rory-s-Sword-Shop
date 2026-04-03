@@ -11,6 +11,22 @@
       font-family: Arial, sans-serif;
       margin: 0;
       background-color: #f4f4f4;
+      position: relative;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 100vh;
+      height: 100vw;
+      transform: translate(-50%, -50%) rotate(90deg);
+      background-image: url('images/background.jpg');
+      background-size: cover;
+      background-position: center;
+      z-index: -1;
     }
 
     .container {
