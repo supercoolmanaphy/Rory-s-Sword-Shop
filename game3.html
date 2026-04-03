@@ -184,7 +184,7 @@ const DUNGEONS = {
     map[8][25]  = T_RED_ROCK;
     map[10][11] = T_RED_ROCK;
     map[11][20] = T_RED_ROCK;
-    return { map, bgColor: '#1a0303', floorColor: '#1e0a0a', wallColor: '#3a1010' };
+    return { map, bgColor: '#4a0e0e', floorColor: '#3d1515', wallColor: '#6a2020' };
   })(),
 };
 
@@ -360,6 +360,28 @@ function isWalkable(col, row) {
 //  GAME START / RESET
 // ================================================================
 
+// Returns a floor tile near PLAYER_START, searching outward until one is found.
+function findSafeSpawn(dungeon) {
+  const map = dungeon.map;
+  if (map[PLAYER_START.row][PLAYER_START.col] === T_FLOOR) {
+    return { col: PLAYER_START.col, row: PLAYER_START.row };
+  }
+  for (let d = 1; d < Math.max(COLS, ROWS); d++) {
+    const candidates = [
+      [PLAYER_START.col, PLAYER_START.row + d],
+      [PLAYER_START.col, PLAYER_START.row - d],
+      [PLAYER_START.col + d, PLAYER_START.row],
+      [PLAYER_START.col - d, PLAYER_START.row],
+    ];
+    for (const [c, r] of candidates) {
+      if (r >= 1 && r < ROWS - 1 && c >= 1 && c < COLS - 1 && map[r][c] === T_FLOOR) {
+        return { col: c, row: r };
+      }
+    }
+  }
+  return { col: PLAYER_START.col, row: PLAYER_START.row }; // fallback
+}
+
 function startBattle(monsterKey) {
   const data = MONSTER_DATA[monsterKey];
   monster.key    = monsterKey;
@@ -374,12 +396,13 @@ function startBattle(monsterKey) {
 
   currentDungeon = DUNGEONS[data.dungeon];
 
-  player.tileX  = PLAYER_START.col;
-  player.tileY  = PLAYER_START.row;
-  player.pxX    = PLAYER_START.col * TILE;
-  player.pxY    = PLAYER_START.row * TILE;
-  player.targetX = PLAYER_START.col;
-  player.targetY = PLAYER_START.row;
+  const spawn = findSafeSpawn(currentDungeon);
+  player.tileX  = spawn.col;
+  player.tileY  = spawn.row;
+  player.pxX    = spawn.col * TILE;
+  player.pxY    = spawn.row * TILE;
+  player.targetX = spawn.col;
+  player.targetY = spawn.row;
   player.facing  = 'up';
   player.moving  = false;
   player.walkTimer = 0;
@@ -535,16 +558,23 @@ function spawnFireWave() {
 
 function spawnBites() {
   const count = MIN_BITES + Math.floor(Math.random() * MAX_EXTRA_BITES);
-  // spawn around player position
-  const placed = new Set();
-  const attempts = count * 10;
+  // Build a list of occupied centers (existing active bites) to prevent overlaps.
+  // Two bites whose centers are within 2 tiles of each other in both axes share visual space.
+  const occupied = biteAttacks.map(bt => [bt.col, bt.row]);
+  const attempts = count * 20;
   let p = 0;
   for (let i = 0; i < attempts && p < count; i++) {
-    const col = Math.max(1, Math.min(COLS-2, player.tileX + Math.floor(Math.random() * 7) - 3));
-    const row = Math.max(1, Math.min(ROWS-2, player.tileY + Math.floor(Math.random() * 7) - 3));
-    const key2 = `${col},${row}`;
-    if (!placed.has(key2) && currentDungeon.map[row][col] === T_FLOOR) {
-      placed.add(key2);
+    // Spread bites over a wider ±6-tile range around the player
+    const col = Math.max(1, Math.min(COLS-2, player.tileX + Math.floor(Math.random() * 13) - 6));
+    const row = Math.max(1, Math.min(ROWS-2, player.tileY + Math.floor(Math.random() * 13) - 6));
+    if (currentDungeon.map[row][col] !== T_FLOOR) continue;
+    // Reject if this bite's 3×3 area would overlap any existing bite's 3×3 area
+    let overlaps = false;
+    for (const [oc, or2] of occupied) {
+      if (Math.abs(col - oc) < 3 && Math.abs(row - or2) < 3) { overlaps = true; break; }
+    }
+    if (!overlaps) {
+      occupied.push([col, row]);
       biteAttacks.push({ col, row, phase: 'warn', timer: 0 });
       p++;
     }
@@ -792,9 +822,11 @@ function update(dt) {
     } else if (fw.phase === 'active') {
       const speed = 7; // tiles per second
       fw.pos += (fw.dir === 'right' ? 1 : -1) * speed * dt;
-      // check player collision: player tile centre within 5-tile band
-      if (player.tileY === fw.row) {
-        const playerCenterPx = player.tileX * TILE + TILE / 2;
+      // check player collision using actual pixel position (accounts for mid-step animation)
+      const playerCenterPx = player.pxX + TILE / 2;
+      const playerCenterPy = player.pxY + TILE / 2;
+      const fireRowTop = fw.row * TILE;
+      if (playerCenterPy >= fireRowTop && playerCenterPy < fireRowTop + TILE) {
         const bandLeft  = (fw.pos - 2.5) * TILE;
         const bandRight = (fw.pos + 2.5) * TILE;
         if (playerCenterPx >= bandLeft && playerCenterPx <= bandRight) {
