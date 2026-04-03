@@ -1,22 +1,22 @@
-import { db } from "./firebase.js";
-import { collection, doc, getDocs, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+const PRODUCTS = [
+  { id: 'product4', name: 'Bronze Axe Head', price: 75.00, inStock: true }
+];
+
+function getStock(id) {
+  const stored = localStorage.getItem('stock_' + id);
+  return stored === null ? true : stored === 'true';
+}
 
 export async function fetchProducts() {
-  const snapshot = await getDocs(collection(db, "products"));
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    name: doc.data().name,
-    price: doc.data().price,
-    inStock: doc.data().inStock
-  }));
+  return PRODUCTS.map(p => ({ ...p, inStock: getStock(p.id) }));
 }
 
 export async function fetchProduct(id) {
-  const snap = await getDoc(doc(db, "products", id));
-  if (!snap.exists()) return null;
-  return { id: snap.id, ...snap.data() };
+  const product = PRODUCTS.find(p => p.id === id);
+  if (!product) return null;
+  return { ...product, inStock: getStock(id) };
 }
 
 export async function updateProductStock(id, inStock) {
-  await updateDoc(doc(db, "products", id), { inStock });
+  localStorage.setItem('stock_' + id, String(inStock));
 }

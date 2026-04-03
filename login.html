@@ -104,7 +104,9 @@
 
     <div id="sign-in-view">
       <h2>Admin Sign In</h2>
-      <div id="sign-in-btn" style="margin-top:20px;display:flex;justify-content:center;"></div>
+      <label for="password-input" style="display:block;margin-top:20px;font-size:14px;color:#555;">Password</label>
+      <input type="password" id="password-input" placeholder="Enter admin password" aria-label="Admin password" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:5px;box-sizing:border-box;">
+      <button class="sign-in-btn" id="sign-in-btn">Sign In</button>
       <p id="error-msg"></p>
     </div>
 
@@ -118,9 +120,8 @@
   </div>
 </div>
 
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script type="module">
-  import { ADMIN_EMAIL } from './admin-config.js';
+  import { ADMIN_EMAIL, ADMIN_PASSWORD_HASH } from './admin-config.js';
 
   function getSafeNext(raw) {
     try {
@@ -137,6 +138,8 @@
   const signOutBtn = document.getElementById('sign-out-btn');
   const signedInEmail = document.getElementById('signed-in-email');
   const errorMsg = document.getElementById('error-msg');
+  const passwordInput = document.getElementById('password-input');
+  const signInBtn = document.getElementById('sign-in-btn');
 
   function showSignedIn(email) {
     signInView.style.display = 'none';
@@ -156,29 +159,24 @@
     showSignedOut();
   }
 
-  function handleCredential(response) {
-    const base64 = response.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    const payload = JSON.parse(atob(base64));
-    if (payload.email !== ADMIN_EMAIL) {
-      errorMsg.textContent = 'Access denied. Only the admin account can sign in.';
+  async function sha256hex(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function handleSignIn() {
+    const hash = await sha256hex(passwordInput.value);
+    if (hash !== ADMIN_PASSWORD_HASH) {
+      errorMsg.textContent = 'Incorrect password.';
       return;
     }
     sessionStorage.setItem('adminVerified', 'true');
-    sessionStorage.setItem('adminEmail', payload.email);
+    sessionStorage.setItem('adminEmail', ADMIN_EMAIL);
     window.location.href = nextUrl;
   }
 
-  window.addEventListener('load', () => {
-    google.accounts.id.initialize({
-      // Replace with your OAuth 2.0 Client ID from https://console.cloud.google.com/
-      client_id: '907004463603-0lnskbqdkp84tmlsr3ifgq0hnfeshqta.apps.googleusercontent.com',
-      callback: handleCredential
-    });
-    google.accounts.id.renderButton(
-      document.getElementById('sign-in-btn'),
-      { type: 'standard', text: 'sign_in_with', theme: 'outline', size: 'large', width: 340 }
-    );
-  });
+  signInBtn.addEventListener('click', handleSignIn);
+  passwordInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleSignIn(); });
 
   signOutBtn.addEventListener('click', () => {
     sessionStorage.removeItem('adminVerified');
