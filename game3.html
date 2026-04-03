@@ -1397,6 +1397,19 @@ function drawMonster() {
 
 function drawSpider(cx2, cy2, t) {
   const s = TILE * 1.3;
+
+  // white glow behind the spider
+  const glowPulse = 0.55 + 0.2 * Math.sin(t * 1.2);
+  const glowRadius = s * 1.1;
+  const glowGrad = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, glowRadius);
+  glowGrad.addColorStop(0,   `rgba(255,255,255,${glowPulse})`);
+  glowGrad.addColorStop(0.45, `rgba(255,255,255,${glowPulse * 0.4})`);
+  glowGrad.addColorStop(1,   'rgba(255,255,255,0)');
+  ctx.fillStyle = glowGrad;
+  ctx.beginPath();
+  ctx.arc(cx2, cy2, glowRadius, 0, Math.PI * 2);
+  ctx.fill();
+
   // shadow
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath();
