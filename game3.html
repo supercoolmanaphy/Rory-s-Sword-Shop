@@ -559,7 +559,7 @@ function spawnFireWave() {
 function spawnBites() {
   const count = MIN_BITES + Math.floor(Math.random() * MAX_EXTRA_BITES);
   // Build a list of occupied centers (existing active bites) to prevent overlaps.
-  // Two bites whose centers are within 2 tiles of each other in both axes share visual space.
+  // Two bites whose centers are within 3 tiles of each other in both axes share visual space.
   const occupied = biteAttacks.map(bt => [bt.col, bt.row]);
   const attempts = count * 20;
   let p = 0;
@@ -570,8 +570,8 @@ function spawnBites() {
     if (currentDungeon.map[row][col] !== T_FLOOR) continue;
     // Reject if this bite's 3×3 area would overlap any existing bite's 3×3 area
     let overlaps = false;
-    for (const [oc, or2] of occupied) {
-      if (Math.abs(col - oc) < 3 && Math.abs(row - or2) < 3) { overlaps = true; break; }
+    for (const [oc, orow] of occupied) {
+      if (Math.abs(col - oc) < 3 && Math.abs(row - orow) < 3) { overlaps = true; break; }
     }
     if (!overlaps) {
       occupied.push([col, row]);
