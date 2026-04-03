@@ -49,6 +49,49 @@
       color: blue;
     }
 
+    h2 {
+      margin-bottom: 30px;
+    }
+
+    .sections {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+
+    .section {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .section img {
+      width: 100%;
+      height: 240px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    .section h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .section p {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .section ul {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 15px;
+      line-height: 1.8;
+    }
+
     .brand-footer {
       text-align: center;
       padding: 30px 20px;
@@ -71,6 +114,55 @@
   <div class="container">
     <a href="index.html" class="back">← Back to Shop</a>
     <h2>Business Plan</h2>
+
+    <div class="sections">
+
+      <!-- Use Cases -->
+      <div class="section">
+        <img src="images/biz1.png" alt="Use Cases">
+        <h3>Use Cases</h3>
+        <p>Our handcrafted bronze swords are designed to serve multiple real-world purposes:</p>
+        <ul>
+          <li><strong>Renaissance Faires</strong> – Eye-catching swords perfect for vendors and performers at Ren faires across the country.</li>
+          <li><strong>Historical Reenactment</strong> – Authentically cast blades that meet the needs of serious reenactors seeking period-accurate weapons.</li>
+          <li><strong>Display &amp; Collecting</strong> – Beautiful show pieces for collectors, museums, or home décor for history lovers.</li>
+        </ul>
+      </div>
+
+      <!-- Clients -->
+      <div class="section">
+        <img src="images/biz2.png" alt="Our Clients">
+        <h3>Our Clients</h3>
+        <p>We serve two main types of customers:</p>
+        <ul>
+          <li><strong>History Enthusiasts</strong> – Individuals passionate about history who want an authentic, hand-made piece to own or display.</li>
+          <li><strong>B2B Wholesale</strong> – We offer bulk pricing and act as a manufacturer for retailers and specialty shops. Become a reseller and stock our swords in your store.</li>
+        </ul>
+      </div>
+
+      <!-- Demographics -->
+      <div class="section">
+        <img src="images/biz3.png" alt="Demographics">
+        <h3>Target Demographic</h3>
+        <p>Our primary market is made up of:</p>
+        <ul>
+          <li><strong>Historical Reenactors</strong> – Members of living history groups, medieval combat societies, and reenactment clubs who value accuracy and craftsmanship.</li>
+          <li><strong>History Enthusiasts</strong> – Hobbyists, collectors, and learners fascinated by ancient civilisations and their weapons and tools.</li>
+        </ul>
+      </div>
+
+      <!-- Advertising -->
+      <div class="section">
+        <h3>Advertising Strategy</h3>
+        <p>We reach our audience through targeted, community-focused outreach:</p>
+        <ul>
+          <li><strong>Facebook Group Ads</strong> – Targeted advertisements placed directly within active historical reenactment and living history Facebook groups, where our core audience already gathers.</li>
+          <li><strong>Social Media Posts</strong> – Regular posts showcasing the casting process, finished swords, and behind-the-scenes content to build brand awareness and engagement.</li>
+          <li><strong>Word of Mouth</strong> – Attending Ren faires and reenactment events in person to demonstrate quality and build lasting customer relationships.</li>
+        </ul>
+      </div>
+
+    </div>
   </div>
 
   <div class="brand-footer">
