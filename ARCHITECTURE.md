@@ -53,7 +53,7 @@ Tile coords stay at the **previous** tile until animation completes; pixel coord
 - **42 tile type constants** in `T{}` (FLOOR, WALL, DOOR_*, GRASS, CHEST_C/O, TREE, …).
 - `WALKABLE` Set determines passable tiles.
 - Door tiles trigger `startTransition()` → fade out → swap room → fade in.
-- Rooms: Storeroom (0), Village Square (1), Farmland (2), Rowanoak Village (3), Riverside Bridge (4), Forest (5), Deep Forest (6), Planter's Farm (7).
+- Rooms: Storeroom (0), Village Square (1), Farmland (2), Rowanoak Village (3), Riverside Bridge (4), Forest (5), Deep Forest (6), Planter's Farm (7), Cave Entrance (8), Cave 1 (9), Spike Maze (10), Cave Pool (11), Skeleton Den (12), Jester's Castle (13), Secret Blackmarket (14), Rowanoak Home (15), Rowanoak Study (16), Rowanoak Cottage (17).
 
 ### Rendering
 - **Game loop**: `requestAnimationFrame` → `update(dt)` → `render()`.
@@ -109,7 +109,7 @@ const WALK_DUR = 0.143; // seconds per tile step (~143 ms)
 ## State Variables (game2.html)
 
 ```js
-let roomIdx          // current room index (0–7)
+let roomIdx          // current room index (0–17)
 let modalOpen        // blocks input when dialog/chest open
 const player         // player object (see Player section)
 const inventory      // [null × 5] hotbar slots
