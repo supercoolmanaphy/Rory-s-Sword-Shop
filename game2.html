@@ -4487,20 +4487,25 @@ document.getElementById('ch-close-result-btn').addEventListener('click', closeCh
 
 const ShellGame = (() => {
   const CW = 620, CH = 260;
-  const SLOTS   = [110, 310, 510];  // cup center-X positions
-  const BASE_Y  = 210;              // cup base Y
-  const CUP_W   = 62, CUP_H = 88;
-  const BALL_R  = 13;
-  const PEEK_DUR   = 1600;          // ms to show ball
-  const HIDE_DUR   = 400;
-  const SWAP_DUR   = 560;           // ms per cup swap
-  const SWAP_PAUSE = 90;            // ms pause between swaps
+  const SLOTS        = [110, 310, 510];  // cup center-X positions
+  const NUM_CUPS     = SLOTS.length;
+  const BASE_Y       = 210;              // cup base Y
+  const CUP_W        = 62, CUP_H = 88;
+  const BALL_R       = 13;
+  const PEEK_DUR     = 1600;             // ms to show ball
+  const HIDE_DUR     = 400;
+  const SWAP_DUR     = 560;              // ms per cup swap
+  const SWAP_PAUSE   = 90;              // ms pause between swaps
+  const MIN_SWAPS    = 4;               // minimum shuffles
+  const SWAP_RANGE   = 3;               // extra random shuffles (0..SWAP_RANGE-1)
+  const CLICK_TOLERANCE = 10;           // extra px either side of cup for click detection
 
   let cv, cx2, msgEl, afId;
   let cups;   // [{ x, liftY, hasBall }]
   let phase;  // 'peek'|'hiding'|'shuffle'|'wait'|'reveal'|'done'
   let t0;
   let swaps, si, swapA, swapB, saxA, saxB, swapT0;
+  let swapCommitted;  // guards against the commit block firing every frame
   let selected, won;
   let onResult;
 
@@ -4510,7 +4515,7 @@ const ShellGame = (() => {
     const out = [];
     for (let i = 0; i < n; i++) {
       let a, b;
-      do { a = Math.random()*3|0; b = Math.random()*3|0; } while (a===b);
+      do { a = Math.random()*NUM_CUPS|0; b = Math.random()*NUM_CUPS|0; } while (a===b);
       out.push([a, b]);
     }
     return out;
@@ -4637,7 +4642,7 @@ const ShellGame = (() => {
   }
 
   function startShuffle() {
-    const n = 4 + Math.floor(Math.random()*3); // 4-6 swaps
+    const n = MIN_SWAPS + Math.floor(Math.random()*SWAP_RANGE); // MIN_SWAPS to MIN_SWAPS+SWAP_RANGE-1 swaps
     swaps = genSwaps(n);
     si = 0;
     setPhase('shuffle');
@@ -4649,6 +4654,7 @@ const ShellGame = (() => {
     swapA = swaps[idx][0]; swapB = swaps[idx][1];
     saxA  = cups[swapA].x;  saxB  = cups[swapB].x;
     swapT0 = performance.now();
+    swapCommitted = false;
   }
 
   // ── main draw ────────────────────────────────────────────────
@@ -4680,19 +4686,17 @@ const ShellGame = (() => {
         cups[swapA].liftY = -28 * Math.sin(t * Math.PI);
         cups[swapB].liftY  = 0;
         handIdx = swapA;
-      } else if (se >= SWAP_DUR) {
-        // Commit position (guard with Infinity so this fires only once)
+      } else if (se >= SWAP_DUR && !swapCommitted) {
+        // Commit position – guarded by flag so this fires only once per swap
+        swapCommitted = true;
         cups[swapA].x = saxB;
         cups[swapB].x = saxA;
         cups[swapA].liftY = 0;
         cups[swapB].liftY = 0;
-        swapT0 = Infinity;  // prevent re-triggering each frame
         si++;
         if (si < swaps.length) {
-          // Brief pause then next swap
           setTimeout(() => { if (phase === 'shuffle') commitSwap(si); }, SWAP_PAUSE);
         } else {
-          // Done shuffling
           setTimeout(() => {
             if (phase === 'shuffle') {
               setPhase('wait');
@@ -4756,7 +4760,7 @@ const ShellGame = (() => {
       const rect = cv.getBoundingClientRect();
       const mx = (e.clientX - rect.left) * (CW / rect.width);
       for (let i = 0; i < cups.length; i++) {
-        if (Math.abs(mx - cups[i].x) < CUP_W/2 + 10) {
+        if (Math.abs(mx - cups[i].x) < CUP_W/2 + CLICK_TOLERANCE) {
           selected = i;
           won = cups[i].hasBall;
           msgEl.textContent = won ? '✨ You found it!' : '😔 Wrong cup...';
@@ -4771,9 +4775,9 @@ const ShellGame = (() => {
     cancelAnimationFrame(afId);
     // Reset cups to starting slot positions
     cups = SLOTS.map((sx, i) => ({ x: sx, liftY: 0, hasBall: false }));
-    const ballSlot = Math.floor(Math.random() * 3);
+    const ballSlot = Math.floor(Math.random() * NUM_CUPS);
     cups[ballSlot].hasBall = true;
-    selected = -1; won = false; si = 0;
+    selected = -1; won = false; si = 0; swapCommitted = false;
     setPhase('peek');
     msgEl.textContent = 'Watch carefully – remember this cup!';
     afId = requestAnimationFrame(draw);
