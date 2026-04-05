@@ -3317,7 +3317,16 @@ function update(dt) {
       const fOy = (player.facing === 'left' || player.facing === 'right')
                 ? (fSide === 0 ? -4 : 4) : 0;
       footsteps.push({ x: stepCx + fOx, y: stepCy + fOy, age: 0, facing: player.facing });
-      if (footsteps.length > 12) footsteps.shift();
+      // record footstep at the tile we just arrived at (under the character)
+      const destCx = player.targetX * TILE + TILE / 2;
+      const destCy = player.targetY * TILE + TILE / 2;
+      const fSide2 = 1 - fSide; // alternate foot for landing step
+      const fOx2 = (player.facing === 'left' || player.facing === 'right') ? 0
+                 : (fSide2 === 0 ? -5 : 5);
+      const fOy2 = (player.facing === 'left' || player.facing === 'right')
+                 ? (fSide2 === 0 ? -4 : 4) : 0;
+      footsteps.push({ x: destCx + fOx2, y: destCy + fOy2, age: 0, facing: player.facing });
+      while (footsteps.length > 24) footsteps.shift();
 
       // ── pig follow: snap pig to the tile the player just vacated ──
       const _prevTileX = player.tileX;
