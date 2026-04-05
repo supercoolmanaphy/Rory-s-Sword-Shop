@@ -2800,6 +2800,9 @@ function openNpcDialog(npc) {
   }
 
 
+  document.getElementById('npc-text-sidebar').textContent =
+    npc.dialog && npc.dialog.length > 0 ? npc.dialog.join('\n\n') : '';
+
   if (npc.shop && npc.shop.length > 0) {
     const hr = document.createElement('hr');
     hr.style.borderColor = '#554030';
