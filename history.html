@@ -78,6 +78,62 @@
       letter-spacing: 0.04em;
       border-bottom: 1px solid #333;
     }
+
+    .sources-section {
+      margin: 40px 20px 40px;
+      border-top: 2px solid #444;
+      padding-top: 30px;
+    }
+
+    .sources-section h2 {
+      color: #e8d5a3;
+      font-family: 'Cinzel', serif;
+      font-size: 22px;
+      letter-spacing: 0.08em;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .sources-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .source-card {
+      background-color: #1a1a1a;
+      border: 1px solid #333;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .source-card .source-title {
+      color: #e8d5a3;
+      font-family: 'Cinzel', serif;
+      font-size: 14px;
+      letter-spacing: 0.03em;
+    }
+
+    .source-card .source-museum {
+      color: #999;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+    }
+
+    .source-card a {
+      color: #b09060;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      word-break: break-all;
+      text-decoration: none;
+    }
+
+    .source-card a:hover {
+      color: #e8d5a3;
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -118,6 +174,49 @@
     <img src="images/history3.jpg" alt="Egyptian Bronze Sword">
     <div class="exhibit-caption">Egyptian Bronze Sword – Metropolitan Museum of Art</div>
   </div>
+
+  <section class="sources-section">
+    <h2>Image Sources</h2>
+    <div class="sources-grid">
+
+      <div class="source-card">
+        <span class="source-title">Collection of Mycenaean Bronze Swords</span>
+        <span class="source-museum">National Museum of Athens</span>
+        <a href="https://commons.wikimedia.org/wiki/File:Mycenaean_knives,_swords,_and_spearhead_at_the_National_Archaeological_Museum_of_Athens_on_October_6,_2021.jpg" target="_blank" rel="noopener noreferrer">commons.wikimedia.org</a>
+      </div>
+
+      <div class="source-card">
+        <span class="source-title">Collection of Irish Bronze Swords</span>
+        <span class="source-museum">National Museum of Ireland</span>
+        <a href="https://swordis.com/blog/irish-swords/?srsltid=AfmBOoqspIuEKIobq8GIaBJiw3f3LUpVnGEyOW54EpOPx5R0HwsWNm0i" target="_blank" rel="noopener noreferrer">swordis.com</a>
+      </div>
+
+      <div class="source-card">
+        <span class="source-title">Etruscan Bronze Spearhead</span>
+        <span class="source-museum">Metropolitan Museum of Art</span>
+        <a href="https://www.metmuseum.org/art/collection/search/251117" target="_blank" rel="noopener noreferrer">metmuseum.org</a>
+      </div>
+
+      <div class="source-card">
+        <span class="source-title">Sword of Goujian</span>
+        <span class="source-museum">Hubei Provincial Museum</span>
+        <a href="https://en.wikipedia.org/wiki/Sword_of_Goujian" target="_blank" rel="noopener noreferrer">en.wikipedia.org</a>
+      </div>
+
+      <div class="source-card">
+        <span class="source-title">Egyptian Bronze Kopesh</span>
+        <span class="source-museum">Metropolitan Museum of Art</span>
+        <a href="https://www.worldhistory.org/image/5826/egyptian-bronze-sword/" target="_blank" rel="noopener noreferrer">worldhistory.org</a>
+      </div>
+
+      <div class="source-card">
+        <span class="source-title">Egyptian Bronze Sword</span>
+        <span class="source-museum">Metropolitan Museum of Art</span>
+        <a href="https://www.worldhistory.org/image/13566/egyptian-bronze-sword/" target="_blank" rel="noopener noreferrer">worldhistory.org</a>
+      </div>
+
+    </div>
+  </section>
 
   <script src="cart.js"></script>
   <script>
