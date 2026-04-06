@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="images/sword5.jpg">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap">
+  <title>History – Rory's Sword Shop</title>
+  <style>
+    * { cursor: url('images/cursor-sword.svg') 5 5, auto !important; }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background-color: #111;
+    }
+
+    header {
+      background-color: #333;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 30px;
+      position: relative;
+    }
+
+    .header-cart {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      text-decoration: none;
+      color: white;
+      font-size: 18px;
+    }
+
+    .header-cart:hover {
+      color: #ccc;
+    }
+
+    .back {
+      display: inline-block;
+      margin: 20px;
+      text-decoration: none;
+      color: #aaa;
+      font-size: 16px;
+    }
+
+    .back:hover {
+      color: white;
+    }
+
+    h1, h2, h3, h4, h5, h6, header {
+      font-family: 'Cinzel', serif;
+    }
+
+    .exhibit {
+      width: 100%;
+    }
+
+    .exhibit img {
+      width: 100%;
+      height: 100vh;
+      object-fit: cover;
+      display: block;
+    }
+
+    .exhibit-caption {
+      background-color: #1a1a1a;
+      color: #e8d5a3;
+      text-align: center;
+      padding: 20px 20px;
+      font-family: 'Cinzel', serif;
+      font-size: 20px;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid #333;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    Rory's Sword Shop
+    <a href="checkout.html" class="header-cart">🛒 Cart (<span id="cart-count">0</span>)</a>
+  </header>
+
+  <a href="index.html" class="back">← Back to Shop</a>
+
+  <div class="exhibit">
+    <img src="images/History2.jpg" alt="Collection of Mycenaean Bronze Swords">
+    <div class="exhibit-caption">Collection of Mycenaean Bronze Swords – National Museum of Athens</div>
+  </div>
+
+  <div class="exhibit">
+    <img src="images/history1.jpg" alt="Collection of Irish Bronze Swords">
+    <div class="exhibit-caption">Collection of Irish Bronze Swords – National Museum of Ireland</div>
+  </div>
+
+  <div class="exhibit">
+    <img src="images/history6.jpg" alt="Etruscan Bronze Spearhead">
+    <div class="exhibit-caption">Etruscan Bronze Spearhead – Metropolitan Museum of Art</div>
+  </div>
+
+  <div class="exhibit">
+    <img src="images/History5.jpg" alt="Sword of Goujian">
+    <div class="exhibit-caption">Sword of Goujian – Hubei Provincial Museum</div>
+  </div>
+
+  <div class="exhibit">
+    <img src="images/history4.jpg" alt="Egyptian Bronze Kopesh">
+    <div class="exhibit-caption">Egyptian Bronze Kopesh – Metropolitan Museum of Art</div>
+  </div>
+
+  <div class="exhibit">
+    <img src="images/history3.jpg" alt="Egyptian Bronze Sword">
+    <div class="exhibit-caption">Egyptian Bronze Sword – Metropolitan Museum of Art</div>
+  </div>
+
+  <script src="cart.js"></script>
+  <script>
+    document.getElementById('cart-count').textContent = getCart().length;
+  </script>
+
+  <script src="cursor.js"></script>
+</body>
+</html>
