@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="images/sword5.jpg">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap">
+  <title>COGS – Rory's Sword Shop</title>
+  <style>
+    * { cursor: url('images/cursor-sword.svg') 5 5, auto !important; }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background-color: #f4f4f4;
+    }
+
+    header {
+      background-color: #333;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 30px;
+      position: relative;
+    }
+
+    .header-cart {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      text-decoration: none;
+      color: white;
+      font-size: 18px;
+    }
+
+    .header-cart:hover {
+      color: #ccc;
+    }
+
+    .container {
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+    }
+
+    .back {
+      display: inline-block;
+      margin-bottom: 20px;
+      text-decoration: none;
+      color: blue;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #555;
+      margin-bottom: 30px;
+      font-size: 15px;
+    }
+
+    .sections {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+
+    .section {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .section h3 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      font-family: 'Cinzel', serif;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 8px;
+    }
+
+    .section p {
+      margin: 0 0 8px;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .section ul {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 15px;
+      line-height: 1.8;
+    }
+
+    .section ul li {
+      margin-bottom: 4px;
+    }
+
+    .section-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    h1, h2, h3, h4, h5, h6, header {
+      font-family: 'Cinzel', serif;
+    }
+
+    .brand-footer {
+      text-align: center;
+      padding: 30px 20px;
+    }
+
+    .brand-footer img {
+      width: 160px;
+      height: auto;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    Rory's Sword Shop
+    <a href="checkout.html" class="header-cart">🛒 Cart (<span id="cart-count">0</span>)</a>
+  </header>
+
+  <div class="container">
+    <a href="index.html" class="back">← Back to Shop</a>
+    <h2>Cost of Goods Sold (COGS)</h2>
+    <p class="subtitle">A full breakdown of the costs involved in producing one Bronze Short Sword.</p>
+
+    <div class="sections">
+
+      <!-- Direct Materials -->
+      <div class="section">
+        <div class="section-icon">🪨</div>
+        <h3>Direct Materials</h3>
+        <p>Raw materials that go directly into the finished sword:</p>
+        <ul>
+          <li><strong>Copper</strong> – Primary metal used in the bronze alloy.</li>
+          <li><strong>Tin</strong> – Alloyed with copper to produce bronze.</li>
+        </ul>
+      </div>
+
+      <!-- Indirect Materials -->
+      <div class="section">
+        <div class="section-icon">🔥</div>
+        <h3>Indirect Materials</h3>
+        <p>Supplies and equipment consumed during the casting and finishing process:</p>
+        <ul>
+          <li><strong>Propane</strong> – Fuel used to fire the furnace for melting metal.</li>
+          <li><strong>Sand Paper</strong> – Used for finishing and polishing each sword.</li>
+          <li><strong>Crucible</strong> – Vessel used to melt the bronze alloy.</li>
+          <li><strong>Furnace</strong> – Equipment used to reach casting temperatures.</li>
+          <li><strong>Scale</strong> – Used to precisely weigh raw materials.</li>
+        </ul>
+      </div>
+
+      <!-- Labor Costs -->
+      <div class="section">
+        <div class="section-icon">⚒️</div>
+        <h3>Labor Costs</h3>
+        <p>Time and effort required to produce and prepare each sword for sale:</p>
+        <ul>
+          <li><strong>Casting Day</strong> – Up to 10 swords can be cast in a single day, so casting labour is divided across 10 units.</li>
+          <li><strong>Finishing Day</strong> – Each batch requires an additional full day of work to finish, polish, and prepare the swords for sale — approximately 1 day per 10 swords.</li>
+        </ul>
+      </div>
+
+      <!-- Administrative Costs -->
+      <div class="section">
+        <div class="section-icon">🖥️</div>
+        <h3>Administrative Costs</h3>
+        <p>Overhead costs allocated per sword sold:</p>
+        <ul>
+          <li><strong>Website Hosting</strong> – Monthly cost of hosting the online shop.</li>
+          <li><strong>Domain Name</strong> – Annual domain registration fee, allocated per unit.</li>
+        </ul>
+      </div>
+
+      <!-- Selling Costs -->
+      <div class="section">
+        <div class="section-icon">📦</div>
+        <h3>Selling Costs</h3>
+        <p>Packaging and shipping materials required to fulfil each order:</p>
+        <ul>
+          <li><strong>Cardboard Box</strong> – Sturdy box sized to safely ship a sword.</li>
+          <li><strong>Tape</strong> – Packing tape to seal the box securely.</li>
+          <li><strong>Packing Paper</strong> – Cushioning material to protect the sword in transit.</li>
+          <li><strong>Shipping Label</strong> – Printed label with postage and delivery details.</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="brand-footer">
+    <img src="images/sword4.jpg" alt="Rory's Sword Shop logo">
+  </div>
+
+</body>
+
+<script src="cart.js"></script>
+<script>
+  document.getElementById('cart-count').textContent = getCart().length;
+</script>
+
+<script src="cursor.js"></script>
+</html>
