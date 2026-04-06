@@ -37,6 +37,20 @@
       color: #ccc;
     }
 
+    @media (max-width: 768px) {
+      header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .header-cart {
+        position: static;
+        transform: none;
+      }
+    }
+
     .container {
       padding: 20px;
       max-width: 900px;
